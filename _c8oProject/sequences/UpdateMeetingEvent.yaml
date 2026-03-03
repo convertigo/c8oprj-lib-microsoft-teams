@@ -1,0 +1,169 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Updates an existing Outlook/Teams meeting event.
+↓inputVars [steps.InputVariablesStep-1772534772396]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteUpdateMeeting [steps.SimpleStep-1772535594594]: 
+  comment: Calls Microsoft Graph Java SDK to patch a meeting event and optional metadata.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "patch_event";
+    var requiredPermission = "Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var targetEventId = gm_require("eventId", eventId);
+    	var meetingTimeZone = gm_defaultString(timeZone, "Europe/Paris");
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+        	var patchEvent = gm_newGraphObject("com.microsoft.graph.models.Event");
+    	var hasPatchPayload = false;
+    	
+    	if (!gm_isBlank(subject)) {
+    		patchEvent.setSubject(String(subject));
+    		hasPatchPayload = true;
+    	}
+    	
+    	if (!gm_isBlank(startIso) || !gm_isBlank(endIso)) {
+    		patchEvent.setStart(gm_newDateTimeTimeZone(gm_require("startIso", startIso), meetingTimeZone));
+    		patchEvent.setEnd(gm_newDateTimeTimeZone(gm_require("endIso", endIso), meetingTimeZone));
+    		hasPatchPayload = true;
+    	}
+    	
+    	if (!gm_isBlank(attendeesJson)) {
+    		patchEvent.setAttendees(gm_parseAttendees(attendeesJson));
+    		hasPatchPayload = true;
+    	}
+    	
+    	if (!gm_isBlank(bodyHtml)) {
+    		patchEvent.setBody(gm_newBodyHtml(bodyHtml));
+    		hasPatchPayload = true;
+    	}
+    	
+    	var updated = null;
+    	var appliedSendUpdates = "";
+    	if (hasPatchPayload) {
+    		var patchResult = gm_patchEventWithSendUpdates(graphClient, organizer, targetEventId, patchEvent, sendUpdates);
+    		updated = patchResult.event;
+    		appliedSendUpdates = patchResult.sendUpdatesApplied;
+    	} else {
+    		updated = graphClient.users().byUserId(organizer).events().byEventId(targetEventId).get();
+    	}
+    	
+    	var data = {
+    		eventId: gm_safeString(updated.getId()),
+    		iCalUId: gm_safeString(updated.getICalUId()),
+    		webLink: gm_safeString(updated.getWebLink()),
+    		onlineMeetingUrl: gm_safeString(updated.getOnlineMeetingUrl()),
+    		start: gm_dttzToObject(updated.getStart()),
+    		end: gm_dttzToObject(updated.getEnd()),
+    		sendUpdatesRequested: gm_defaultString(sendUpdates, "all"),
+    		sendUpdatesApplied: appliedSendUpdates,
+    		payloadUpdated: hasPatchPayload
+    	};
+    	
+    	if (!gm_isBlank(customMetadataJson)) {
+    		var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    		var extensionMergeMode = gm_defaultString(mergeMode, "merge");
+    		data.metadata = gm_upsertOpenExtension(graphClient, organizer, targetEventId, extensionName, customMetadataJson, extensionMergeMode);
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772535594650]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772534772791]: 
+  comment: Target organizer mailbox (user id or UPN) used to patch the event.
+  description: Organizer user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772534772861]: 
+  comment: Target Outlook event id to update.
+  description: Outlook event id
+  required: true
+↓subject [variables.RequestableVariable-1772534772929]: 
+  comment: Optional updated meeting subject.
+  description: Updated meeting subject
+↓startIso [variables.RequestableVariable-1772534772992]: 
+  comment: Optional updated start datetime in ISO-8601 format.
+  description: Updated start ISO-8601
+↓endIso [variables.RequestableVariable-1772534773062]: 
+  comment: Optional updated end datetime in ISO-8601 format.
+  description: Updated end ISO-8601
+↓timeZone [variables.RequestableVariable-1772534773129]: 
+  comment: Time zone used for updated start and end values.
+  description: Meeting timezone
+  value: Europe/Paris
+↓attendeesJson [variables.RequestableVariable-1772534773196]: 
+  comment: Optional JSON array of attendees [{email,name,type}] to replace current attendees.
+  description: Updated JSON array of attendees
+↓bodyHtml [variables.RequestableVariable-1772534773264]: 
+  comment: Optional updated HTML body/description.
+  description: Updated meeting HTML description
+↓customMetadataJson [variables.RequestableVariable-1772534773333]: 
+  comment: Optional custom metadata JSON persisted as open extension.
+  description: Updated custom business metadata JSON
+↓sendUpdates [variables.RequestableVariable-1772534773400]: 
+  comment: Update mode none|externalOnly|all, transmitted to Graph when payloadUpdated is true.
+  description: none, externalOnly, all
+  value: all
+↓metadataExtensionId [variables.RequestableVariable-1772535594727]: 
+  comment: Open extension identifier used when customMetadataJson is provided.
+  description: Open extension id for custom metadata
+  value: com.convertigo.meeting
+↓mergeMode [variables.RequestableVariable-1772535594804]: 
+  comment: Metadata merge mode when extension exists (merge or replace).
+  description: Metadata merge mode
+  value: merge
+↓accessToken [variables.RequestableVariable-1772535594882]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772535594969]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772535595062]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772535595162]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_UpdateMeeting_SendExternalOnly [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772537158894]: 
+    value: olivierp@convertigo.onmicrosoft.com
+  ↓eventId [variables.TestCaseVariable-1772537158960]: 
+    value: AAMkADU4Nzc0YTVkLTY3MDEtNGFlMy04NjZjLWY4ZmEwMDBjNjg4MABGAAAAAACdKHCf-i4aQbriwh8BLJECBwASiDEmHgC_TK5kExtng0b1AAAAAAENAAASiDEmHgC_TK5kExtng0b1AAag50kIAAA=
+  ↓subject [variables.TestCaseVariable-1772537159039]: 
+    value: Weekly Project Sync - Updated
+  ↓bodyHtml [variables.TestCaseVariable-1772537159116]: 
+    value: <p>Updated from Convertigo backend.</p>
+  ↓sendUpdates [variables.TestCaseVariable-1772537159203]: 
+    value: externalOnly
+  ↓customMetadataJson [variables.TestCaseVariable-1772537159303]: 
+  ↓mergeMode [variables.TestCaseVariable-1772537159414]: 
+    value: merge

@@ -1,0 +1,168 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension.
+↓inputVars [steps.InputVariablesStep-1772536002001]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteGetMeeting [steps.SimpleStep-1772536002002]: 
+  comment: Calls Microsoft Graph Java SDK to read one event and optional extension payloads.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "get_event";
+    var requiredPermission = "Calendars.Read|Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var targetEventId = gm_require("eventId", eventId);
+    	var shouldIncludeAttendees = gm_toBoolean(includeAttendees, true);
+    	var shouldIncludeBody = gm_toBoolean(includeBody, true);
+    	var shouldIncludeExtensions = gm_toBoolean(includeExtensions, true);
+    	var shouldFailIfMetadataMissing = gm_toBoolean(failIfMetadataMissing, false);
+    	var shouldFailIfExtensionsUnsupported = gm_toBoolean(failIfExtensionsUnsupported, false);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	var eventBuilder = graphClient.users().byUserId(organizer).events().byEventId(targetEventId);
+    	
+    	var event = eventBuilder.get();
+    	var data = {
+    		eventId: gm_safeString(event.getId()),
+    		iCalUId: gm_safeString(event.getICalUId()),
+    		subject: gm_safeString(event.getSubject()),
+    		webLink: gm_safeString(event.getWebLink()),
+    		isOnlineMeeting: event.getIsOnlineMeeting(),
+    		onlineMeetingProvider: gm_enumValue(event.getOnlineMeetingProvider()),
+    		onlineMeetingUrl: gm_safeString(event.getOnlineMeetingUrl()),
+    		showAs: gm_enumValue(event.getShowAs()),
+    		isCancelled: event.getIsCancelled(),
+    		start: gm_dttzToObject(event.getStart()),
+    		end: gm_dttzToObject(event.getEnd()),
+    		organizer: gm_recipientToObject(event.getOrganizer()),
+    		location: gm_locationToObject(event.getLocation()),
+    		onlineMeeting: gm_onlineMeetingInfoToObject(event.getOnlineMeeting())
+    	};
+    	
+    	if (shouldIncludeAttendees) {
+    		data.attendees = gm_attendeesToArray(event.getAttendees());
+    	}
+    	
+    	if (shouldIncludeBody) {
+    		data.body = gm_itemBodyToObject(event.getBody());
+    	}
+    	
+    	if (!gm_isBlank(metadataExtensionId)) {
+    		try {
+    			var metadataExtension = eventBuilder.extensions().byExtensionId(String(metadataExtensionId)).get();
+    			data.metadataExtension = gm_extensionToObject(metadataExtension);
+    		} catch (metadataError) {
+    			if (shouldFailIfMetadataMissing) {
+    				throw metadataError;
+    			}
+    			data.metadataExtension = null;
+    			data.metadataExtensionMissing = true;
+    		}
+    	}
+    	
+    	if (shouldIncludeExtensions) {
+    		try {
+    			var extensionsResponse = eventBuilder.extensions().get();
+    			var extensionValues = extensionsResponse === null ? null : extensionsResponse.getValue();
+    			data.extensions = gm_extensionsToArray(extensionValues);
+    		} catch (extensionsError) {
+    			if (shouldFailIfExtensionsUnsupported) {
+    				throw extensionsError;
+    			}
+    			data.extensions = [];
+    			data.extensionsUnsupported = true;
+    			data.extensionsUnsupportedError = gm_safeString(extensionsError.message);
+    		}
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772536002003]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772536002004]: 
+  comment: Target organizer mailbox (user id or UPN) owning the event.
+  description: Organizer user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772536002005]: 
+  comment: Target Outlook event id to read.
+  description: Outlook event id
+  required: true
+↓includeAttendees [variables.RequestableVariable-1772536002006]: 
+  comment: true includes attendee list in response payload.
+  description: Include attendees in output
+  value: true
+↓includeBody [variables.RequestableVariable-1772536002007]: 
+  comment: true includes event body (HTML/text) in response payload.
+  description: Include body in output
+  value: true
+↓includeExtensions [variables.RequestableVariable-1772536002008]: 
+  comment: true loads all open extensions available on the event.
+  description: Include open extensions in output
+  value: true
+↓metadataExtensionId [variables.RequestableVariable-1772536002009]: 
+  comment: Optional extension id to fetch directly in metadataExtension field.
+  description: Specific metadata extension id
+↓failIfMetadataMissing [variables.RequestableVariable-1772536002010]: 
+  comment: true returns error if metadataExtensionId is provided but not found.
+  description: Fail when metadata extension is missing
+  value: false
+↓failIfExtensionsUnsupported [variables.RequestableVariable-1772541500347]: 
+  comment: true returns error when listing extensions is not supported for the targeted event.
+  description: Fail when extension listing is unsupported
+  value: false
+↓accessToken [variables.RequestableVariable-1772536002011]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772536002012]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772536002013]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772536002014]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_GetMeeting_Details [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772537150419]: 
+    value: olivierp@convertigo.onmicrosoft.com
+  ↓eventId [variables.TestCaseVariable-1772537150491]: 
+    value: AAMkADU4Nzc0YTVkLTY3MDEtNGFlMy04NjZjLWY4ZmEwMDBjNjg4MABGAAAAAACdKHCf-i4aQbriwh8BLJECBwASiDEmHgC_TK5kExtng0b1AAAAAAENAAASiDEmHgC_TK5kExtng0b1AAag50kIAAA=
+  ↓includeAttendees [variables.TestCaseVariable-1772537150564]: 
+    value: true
+  ↓includeBody [variables.TestCaseVariable-1772537150642]: 
+    value: true
+  ↓includeExtensions [variables.TestCaseVariable-1772537150727]: 
+    value: true
+  ↓metadataExtensionId [variables.TestCaseVariable-1772537150822]: 
+    value: com.convertigo.meeting
+  ↓failIfMetadataMissing [variables.TestCaseVariable-1772537150925]: 
+    value: false
+  ↓failIfExtensionsUnsupported [variables.TestCaseVariable-1772541501325]: 
+    value: false

@@ -1,0 +1,332 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Plans an available slot and creates an Outlook/Teams meeting event in one backend call.
+↓inputVars [steps.InputVariablesStep-1772536001001]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecutePlanAndCreateMeeting [steps.SimpleStep-1772536001002]: 
+  comment: Suggests/selects a slot then creates the Teams meeting event and optional metadata extension.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "plan_and_create_event";
+    var requiredPermission = "Calendars.ReadWrite|freeBusy";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var meetingSubject = gm_require("subject", subject);
+    	var meetingTimeZone = gm_defaultString(timeZone, "Europe/Paris");
+    	var attendees = gm_parseAttendees(attendeesJson);
+    	var durationMinutes = gm_parseInteger("meetingDurationMinutes", meetingDurationMinutes, 30);
+    	if (durationMinutes < 5) {
+    		durationMinutes = 5;
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+    	var selectedStart = "";
+    	var selectedEnd = "";
+    	var planning = {
+    		slotSource: "",
+    		strategyRequested: gm_defaultString(strategy, "auto").toLowerCase(),
+    		strategyUsed: "",
+    		candidateIndex: -1,
+    		candidates: []
+    	};
+    	
+    	if (!gm_isBlank(preferredStartIso) || !gm_isBlank(preferredEndIso)) {
+    		selectedStart = gm_require("preferredStartIso", preferredStartIso);
+    		selectedEnd = gm_require("preferredEndIso", preferredEndIso);
+    		planning.slotSource = "preferred";
+    		planning.strategyUsed = "preferred";
+    	} else {
+    		var searchStart = gm_require("searchWindowStartIso", searchWindowStartIso);
+    		var searchEnd = gm_require("searchWindowEndIso", searchWindowEndIso);
+    		var requestedStrategy = planning.strategyRequested;
+    		if (requestedStrategy === "auto") {
+    			requestedStrategy = tokenInfo.mode === "delegated" ? "findmeetingtimes" : "getschedule";
+    		}
+    		if (requestedStrategy !== "findmeetingtimes" && requestedStrategy !== "getschedule") {
+    			requestedStrategy = "findmeetingtimes";
+    		}
+    		if (requestedStrategy === "findmeetingtimes" && tokenInfo.mode === "application") {
+    			requestedStrategy = "getschedule";
+    		}
+    		planning.strategyUsed = requestedStrategy;
+    		
+    		if (requestedStrategy === "findmeetingtimes") {
+    			var maxCandidateCount = gm_parseInteger("maxCandidates", maxCandidates, 5);
+    			if (maxCandidateCount < 1) {
+    				maxCandidateCount = 1;
+    			}
+    			var minimumPercent = gm_parseDouble("minimumAttendeePercentage", minimumAttendeePercentage, 50);
+    			if (minimumPercent < 0) {
+    				minimumPercent = 0;
+    			}
+    			if (minimumPercent > 100) {
+    				minimumPercent = 100;
+    			}
+    			
+        			var findBody = gm_newGraphObject("com.microsoft.graph.users.item.findmeetingtimes.FindMeetingTimesPostRequestBody");
+    			findBody.setAttendees(attendees);
+    			findBody.setMaxCandidates(new java.lang.Integer(String(maxCandidateCount)));
+    			findBody.setMinimumAttendeePercentage(new java.lang.Double(String(minimumPercent)));
+    			findBody.setMeetingDuration(Packages.com.microsoft.kiota.PeriodAndDuration.parse("PT" + durationMinutes + "M"));
+    			findBody.setReturnSuggestionReasons(java.lang.Boolean.TRUE);
+    			
+        			var constraint = gm_newGraphObject("com.microsoft.graph.models.TimeConstraint");
+        			constraint.setActivityDomain(gm_enumForValue("com.microsoft.graph.models.ActivityDomain", "work", "work"));
+    			var slots = new java.util.ArrayList();
+        			var slot = gm_newGraphObject("com.microsoft.graph.models.TimeSlot");
+    			slot.setStart(gm_newDateTimeTimeZone(searchStart, meetingTimeZone));
+    			slot.setEnd(gm_newDateTimeTimeZone(searchEnd, meetingTimeZone));
+    			slots.add(slot);
+    			constraint.setTimeSlots(slots);
+    			findBody.setTimeConstraint(constraint);
+    			
+    			var suggestionsResult = graphClient.users().byUserId(organizer).findMeetingTimes().post(findBody);
+    			var suggestions = suggestionsResult.getMeetingTimeSuggestions();
+    			if (suggestions !== null) {
+    				var si;
+    				for (si = 0; si < suggestions.size(); si++) {
+    					var suggestion = suggestions.get(si);
+    					var meetingSlot = suggestion.getMeetingTimeSlot();
+    					planning.candidates.push({
+    						order: suggestion.getOrder(),
+    						confidence: suggestion.getConfidence(),
+    						reason: gm_safeString(suggestion.getSuggestionReason()),
+    						start: meetingSlot === null ? null : gm_dttzToObject(meetingSlot.getStart()),
+    						end: meetingSlot === null ? null : gm_dttzToObject(meetingSlot.getEnd())
+    					});
+    				}
+    			}
+    			
+    			if (planning.candidates.length > 0) {
+    				var requestedIndex = gm_parseInteger("selectCandidateIndex", selectCandidateIndex, 0);
+    				if (requestedIndex < 0) {
+    					requestedIndex = 0;
+    				}
+    				if (requestedIndex >= planning.candidates.length) {
+    					requestedIndex = planning.candidates.length - 1;
+    				}
+    				planning.candidateIndex = requestedIndex;
+    				selectedStart = planning.candidates[requestedIndex].start === null ? "" : gm_safeString(planning.candidates[requestedIndex].start.dateTime);
+    				selectedEnd = planning.candidates[requestedIndex].end === null ? "" : gm_safeString(planning.candidates[requestedIndex].end.dateTime);
+    				planning.slotSource = "findMeetingTimes";
+    			}
+    		}
+    		
+    		if (gm_isBlank(selectedStart) || gm_isBlank(selectedEnd)) {
+    			var slotStep = gm_parseInteger("slotStepMinutes", slotStepMinutes, 15);
+        			var scheduleBody = gm_newGraphObject("com.microsoft.graph.users.item.calendar.getschedule.GetSchedulePostRequestBody");
+    			scheduleBody.setSchedules(gm_getScheduleEmails(organizer, attendeesJson));
+    			scheduleBody.setStartTime(gm_newDateTimeTimeZone(searchStart, meetingTimeZone));
+    			scheduleBody.setEndTime(gm_newDateTimeTimeZone(searchEnd, meetingTimeZone));
+    			scheduleBody.setAvailabilityViewInterval(new java.lang.Integer(String(durationMinutes > 60 ? 60 : durationMinutes)));
+    			
+    			var scheduleResponse = graphClient.users().byUserId(organizer).calendar().getSchedule().post(scheduleBody);
+    			var scheduleValues = scheduleResponse.getValue();
+    			planning.strategyUsed = planning.strategyUsed === "findmeetingtimes" ? "findMeetingTimes_then_getSchedule" : "getSchedule";
+    			planning.schedulesCount = scheduleValues === null ? 0 : scheduleValues.size();
+    			
+    			var slotFromSchedule = gm_findFirstAvailableSlot(scheduleValues, searchStart, searchEnd, meetingTimeZone, durationMinutes, slotStep);
+    			if (slotFromSchedule !== null) {
+    				selectedStart = slotFromSchedule.startIso;
+    				selectedEnd = slotFromSchedule.endIso;
+    				planning.slotSource = "getSchedule";
+    			} else {
+    				if (gm_toBoolean(strictSlotSelection, true)) {
+    					throw new java.lang.RuntimeException("No available meeting slot found in requested search window");
+    				}
+    				var fallbackStartMs = gm_parseIsoToEpochMillis(searchStart, meetingTimeZone);
+    				var fallbackEndMs = fallbackStartMs + (durationMinutes * 60 * 1000);
+    				if (fallbackEndMs > gm_parseIsoToEpochMillis(searchEnd, meetingTimeZone)) {
+    					throw new java.lang.RuntimeException("Search window is shorter than requested meeting duration");
+    				}
+    				selectedStart = gm_epochMillisToIsoLocal(fallbackStartMs, meetingTimeZone);
+    				selectedEnd = gm_epochMillisToIsoLocal(fallbackEndMs, meetingTimeZone);
+    				planning.slotSource = "window_start_fallback";
+    				planning.warning = "No free slot detected, first window slot was selected because strictSlotSelection=false";
+    			}
+    		}
+    	}
+    	
+        	var event = gm_newGraphObject("com.microsoft.graph.models.Event");
+    	event.setSubject(meetingSubject);
+    	event.setStart(gm_newDateTimeTimeZone(selectedStart, meetingTimeZone));
+    	event.setEnd(gm_newDateTimeTimeZone(selectedEnd, meetingTimeZone));
+    	event.setAttendees(attendees);
+    	event.setIsOnlineMeeting(java.lang.Boolean.valueOf(String(gm_toBoolean(isOnlineMeeting, true))));
+    	
+        	var provider = gm_enumForValue("com.microsoft.graph.models.OnlineMeetingProviderType", onlineMeetingProvider, "teamsForBusiness");
+    	if (provider !== null) {
+    		event.setOnlineMeetingProvider(provider);
+    	}
+    	
+    	if (!gm_isBlank(bodyHtml)) {
+    		event.setBody(gm_newBodyHtml(bodyHtml));
+    	}
+    	
+    	if (!gm_isBlank(idempotencyKey)) {
+    		event.setTransactionId(String(idempotencyKey));
+    	}
+    	
+    	var created = graphClient.users().byUserId(organizer).events().post(event);
+    	var data = {
+    		planning: planning,
+    		selectedSlot: {
+    			startIso: selectedStart,
+    			endIso: selectedEnd,
+    			timeZone: meetingTimeZone
+    		},
+    		createdEvent: {
+    			eventId: gm_safeString(created.getId()),
+    			iCalUId: gm_safeString(created.getICalUId()),
+    			webLink: gm_safeString(created.getWebLink()),
+    			onlineMeetingUrl: gm_safeString(created.getOnlineMeetingUrl()),
+    			start: gm_dttzToObject(created.getStart()),
+    			end: gm_dttzToObject(created.getEnd())
+    		}
+    	};
+    	
+    	if (!gm_isBlank(customMetadataJson)) {
+    		var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    		data.createdEvent.metadata = gm_upsertOpenExtension(graphClient, organizer, data.createdEvent.eventId, extensionName, customMetadataJson, "merge");
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772536001003]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772536001004]: 
+  comment: Target organizer mailbox (user id or UPN) used to create the event.
+  description: Organizer user id or principal name
+  required: true
+↓subject [variables.RequestableVariable-1772536001005]: 
+  comment: Meeting subject shown in calendar and invitation.
+  description: Meeting subject
+  required: true
+↓attendeesJson [variables.RequestableVariable-1772536001006]: 
+  comment: JSON array of attendees [{email,name,type}] where type is required|optional|resource.
+  description: JSON array of attendees
+  required: true
+↓preferredStartIso [variables.RequestableVariable-1772536001007]: 
+  comment: Optional preferred start datetime (ISO-8601). If set, planning lookup is skipped.
+  description: Preferred start ISO-8601
+↓preferredEndIso [variables.RequestableVariable-1772536001008]: 
+  comment: Optional preferred end datetime (ISO-8601). Required with preferredStartIso.
+  description: Preferred end ISO-8601
+↓searchWindowStartIso [variables.RequestableVariable-1772536001009]: 
+  comment: Search window start datetime used when preferred slot is not provided.
+  description: Search window start ISO-8601
+↓searchWindowEndIso [variables.RequestableVariable-1772536001010]: 
+  comment: Search window end datetime used when preferred slot is not provided.
+  description: Search window end ISO-8601
+↓timeZone [variables.RequestableVariable-1772536001011]: 
+  comment: Time zone used for planning window and created meeting slot values.
+  description: Meeting timezone
+  value: Europe/Paris
+↓meetingDurationMinutes [variables.RequestableVariable-1772536001012]: 
+  comment: Requested meeting duration in minutes (minimum 5).
+  description: Meeting duration in minutes
+  value: 30
+↓strategy [variables.RequestableVariable-1772536001013]: 
+  comment: Slot planning strategy auto|findMeetingTimes|getSchedule.
+  description: Slot planning strategy
+  value: auto
+↓maxCandidates [variables.RequestableVariable-1772536001014]: 
+  comment: Maximum returned suggestions for findMeetingTimes strategy.
+  description: Maximum number of suggested slots
+  value: 5
+↓minimumAttendeePercentage [variables.RequestableVariable-1772536001015]: 
+  comment: Minimum attendee fit percentage expected for findMeetingTimes.
+  description: Minimum attendee acceptance percentage
+  value: 50
+↓selectCandidateIndex [variables.RequestableVariable-1772536001016]: 
+  comment: Preferred candidate index to select when findMeetingTimes returns suggestions.
+  description: Candidate index to select
+  value: 0
+↓slotStepMinutes [variables.RequestableVariable-1772536001017]: 
+  comment: Slot scanning step in minutes when strategy uses getSchedule.
+  description: Slot step in minutes for getSchedule
+  value: 15
+↓strictSlotSelection [variables.RequestableVariable-1772536001018]: 
+  comment: true fails when no free slot is found, false falls back to search window start.
+  description: Strict slot selection mode
+  value: true
+↓bodyHtml [variables.RequestableVariable-1772536001019]: 
+  comment: Optional HTML body/description for the meeting invitation.
+  description: Meeting HTML description
+↓customMetadataJson [variables.RequestableVariable-1772536001020]: 
+  comment: Optional custom metadata JSON persisted as open extension.
+  description: Custom business metadata JSON
+↓metadataExtensionId [variables.RequestableVariable-1772536001021]: 
+  comment: Open extension identifier used when customMetadataJson is provided.
+  description: Open extension id for custom metadata
+  value: com.convertigo.meeting
+↓isOnlineMeeting [variables.RequestableVariable-1772536001022]: 
+  comment: true to generate a Teams online meeting link on the event.
+  description: Create Teams online meeting link
+  value: true
+↓onlineMeetingProvider [variables.RequestableVariable-1772536001023]: 
+  comment: Online meeting provider value (teamsForBusiness by default).
+  description: Online meeting provider
+  value: teamsForBusiness
+↓idempotencyKey [variables.RequestableVariable-1772536001024]: 
+  comment: Optional transaction id used for idempotent event creation.
+  description: Optional idempotency key
+↓accessToken [variables.RequestableVariable-1772536001025]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772536001026]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772536001027]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772536001028]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_PlanAndCreate_Auto [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772537153490]: 
+    value: john.doe@contoso.com
+  ↓subject [variables.TestCaseVariable-1772537153560]: 
+    value: Planned Meeting from Convertigo
+  ↓attendeesJson [variables.TestCaseVariable-1772537153632]: 
+  ↓searchWindowStartIso [variables.TestCaseVariable-1772537153709]: 
+    value: 2026-03-15T09:00:00
+  ↓searchWindowEndIso [variables.TestCaseVariable-1772537153792]: 
+    value: 2026-03-15T18:00:00
+  ↓meetingDurationMinutes [variables.TestCaseVariable-1772537153888]: 
+    value: 30.0
+  ↓strategy [variables.TestCaseVariable-1772537153998]: 
+    value: auto
+  ↓strictSlotSelection [variables.TestCaseVariable-1772537154111]: 
+    value: true
+  ↓bodyHtml [variables.TestCaseVariable-1772537154233]: 
+    value: <p>Meeting planned and created from Convertigo backend.</p>
+  ↓customMetadataJson [variables.TestCaseVariable-1772537154365]: 

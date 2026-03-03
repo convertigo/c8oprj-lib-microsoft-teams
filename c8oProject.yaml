@@ -5,4 +5,11 @@
   corsOrigin: =Origin
   httpSessionTimeout: 60
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
+  ↓AttachMeetingCustomMetadata [sequences.GenericSequence]: 🗏 sequences/AttachMeetingCustomMetadata.yaml
   ↓BuildGraphFlatJar [sequences.GenericSequence]: 🗏 sequences/BuildGraphFlatJar.yaml
+  ↓CancelMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CancelMeetingEvent.yaml
+  ↓CreateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CreateMeetingEvent.yaml
+  ↓GetMeetingEvent [sequences.GenericSequence]: 🗏 sequences/GetMeetingEvent.yaml
+  ↓PlanAndCreateMeeting [sequences.GenericSequence]: 🗏 sequences/PlanAndCreateMeeting.yaml
+  ↓SuggestMeetingSlots [sequences.GenericSequence]: 🗏 sequences/SuggestMeetingSlots.yaml
+  ↓UpdateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/UpdateMeetingEvent.yaml

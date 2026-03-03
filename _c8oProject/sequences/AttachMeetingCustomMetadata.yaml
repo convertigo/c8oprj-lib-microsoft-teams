@@ -1,0 +1,100 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Attaches custom business metadata to a meeting event via Graph extensions.
+↓inputVars [steps.InputVariablesStep-1772534801524]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteAttachMetadata [steps.SimpleStep-1772535584397]: 
+  comment: Calls Microsoft Graph Java SDK to create or update event open extension data.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "patch_event_open_extension";
+    var requiredPermission = "Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var targetEventId = gm_require("eventId", eventId);
+    	var targetExtensionId = gm_require("extensionId", extensionId);
+    	gm_require("metadataJson", metadataJson);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+    	var extensionMergeMode = gm_defaultString(mergeMode, "merge");
+    	var metadataUpdate = gm_upsertOpenExtension(graphClient, organizer, targetEventId, targetExtensionId, metadataJson, extensionMergeMode);
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		eventId: targetEventId,
+    		extensionId: targetExtensionId,
+    		mergeMode: extensionMergeMode,
+    		metadata: metadataUpdate
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772535584462]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772534801912]: 
+  comment: Target organizer mailbox (user id or UPN) owning the event.
+  description: Organizer user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772534801983]: 
+  comment: Target Outlook event id receiving metadata.
+  description: Outlook event id
+  required: true
+↓extensionId [variables.RequestableVariable-1772534802052]: 
+  comment: Open extension identifier to create or update.
+  description: Open extension identifier
+  required: true
+↓metadataJson [variables.RequestableVariable-1772534802132]: 
+  comment: JSON object persisted in extension additionalData.
+  description: Custom metadata JSON payload
+  required: true
+↓mergeMode [variables.RequestableVariable-1772534802201]: 
+  comment: merge keeps existing keys, replace overwrites extension payload.
+  description: merge or replace
+  value: merge
+↓accessToken [variables.RequestableVariable-1772535584536]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772535584618]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772535584720]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772535584862]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_AttachMetadata_Nominal [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772537144070]: 
+    value: john.doe@contoso.com
+  ↓eventId [variables.TestCaseVariable-1772537144143]: 
+    value: AAMkAGI2TAAAAAAABAAA=
+  ↓extensionId [variables.TestCaseVariable-1772537144216]: 
+    value: com.convertigo.meeting
+  ↓metadataJson [variables.TestCaseVariable-1772537144294]: 
+  ↓mergeMode [variables.TestCaseVariable-1772537144378]: 
+    value: merge

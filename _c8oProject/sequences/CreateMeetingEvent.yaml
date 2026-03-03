@@ -1,0 +1,164 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Creates an Outlook calendar event with Teams online meeting link.
+↓inputVars [steps.InputVariablesStep-1772534755625]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteCreateMeeting [steps.SimpleStep-1772535589111]: 
+  comment: Calls Microsoft Graph Java SDK to create a Teams-enabled calendar event.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "create_event_with_teams_link";
+    var requiredPermission = "Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var meetingSubject = gm_require("subject", subject);
+    	var meetingStart = gm_require("startIso", startIso);
+    	var meetingEnd = gm_require("endIso", endIso);
+    	var meetingTimeZone = gm_defaultString(timeZone, "Europe/Paris");
+    	var attendees = gm_parseAttendees(attendeesJson);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+        	var event = gm_newGraphObject("com.microsoft.graph.models.Event");
+    	event.setSubject(meetingSubject);
+    	event.setStart(gm_newDateTimeTimeZone(meetingStart, meetingTimeZone));
+    	event.setEnd(gm_newDateTimeTimeZone(meetingEnd, meetingTimeZone));
+    	event.setAttendees(attendees);
+    	event.setIsOnlineMeeting(java.lang.Boolean.valueOf(String(gm_toBoolean(isOnlineMeeting, true))));
+    	
+        	var provider = gm_enumForValue("com.microsoft.graph.models.OnlineMeetingProviderType", onlineMeetingProvider, "teamsForBusiness");
+    	if (provider !== null) {
+    		event.setOnlineMeetingProvider(provider);
+    	}
+    	
+    	if (!gm_isBlank(bodyHtml)) {
+    		event.setBody(gm_newBodyHtml(bodyHtml));
+    	}
+    	
+    	if (!gm_isBlank(idempotencyKey)) {
+    		event.setTransactionId(String(idempotencyKey));
+    	}
+    	
+    	var created = graphClient.users().byUserId(organizer).events().post(event);
+    	var data = {
+    		eventId: gm_safeString(created.getId()),
+    		iCalUId: gm_safeString(created.getICalUId()),
+    		webLink: gm_safeString(created.getWebLink()),
+    		onlineMeetingUrl: gm_safeString(created.getOnlineMeetingUrl()),
+    		start: gm_dttzToObject(created.getStart()),
+    		end: gm_dttzToObject(created.getEnd())
+    	};
+    	
+    	if (!gm_isBlank(customMetadataJson)) {
+    		var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    		data.metadata = gm_upsertOpenExtension(graphClient, organizer, data.eventId, extensionName, customMetadataJson, "merge");
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772535589177]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772534756060]: 
+  comment: Target organizer mailbox (user id or UPN) used to create the event.
+  description: Organizer user id or principal name
+  required: true
+↓subject [variables.RequestableVariable-1772534756121]: 
+  comment: Meeting subject shown in calendar and invitation.
+  description: Meeting subject
+  required: true
+↓startIso [variables.RequestableVariable-1772534756202]: 
+  comment: Meeting start in ISO-8601 format (for example 2026-03-03T10:00:00).
+  description: Meeting start ISO-8601
+  required: true
+↓endIso [variables.RequestableVariable-1772534756265]: 
+  comment: Meeting end in ISO-8601 format (for example 2026-03-03T11:00:00).
+  description: Meeting end ISO-8601
+  required: true
+↓timeZone [variables.RequestableVariable-1772534756336]: 
+  comment: Time zone used for start and end values.
+  description: Meeting timezone
+  value: Europe/Paris
+↓attendeesJson [variables.RequestableVariable-1772534756403]: 
+  comment: JSON array of attendees [{email,name,type}] where type is required|optional|resource.
+  description: JSON array of attendees
+  required: true
+↓bodyHtml [variables.RequestableVariable-1772534756474]: 
+  comment: Optional HTML body/description for the meeting invitation.
+  description: Meeting HTML description
+↓customMetadataJson [variables.RequestableVariable-1772534756540]: 
+  comment: Optional custom metadata JSON persisted as open extension.
+  description: Custom business metadata JSON
+↓isOnlineMeeting [variables.RequestableVariable-1772534756606]: 
+  comment: true to generate a Teams online meeting link on the event.
+  description: Create Teams online meeting link
+  value: true
+↓idempotencyKey [variables.RequestableVariable-1772534756675]: 
+  comment: Optional transaction id used for idempotent event creation.
+  description: Optional idempotency key
+↓onlineMeetingProvider [variables.RequestableVariable-1772534756742]: 
+  comment: Online meeting provider value (teamsForBusiness by default).
+  description: Online meeting provider
+  value: teamsForBusiness
+↓metadataExtensionId [variables.RequestableVariable-1772535589255]: 
+  comment: Open extension identifier used when customMetadataJson is provided.
+  description: Open extension id for custom metadata
+  value: com.convertigo.meeting
+↓accessToken [variables.RequestableVariable-1772535589356]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772535589543]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772535589642]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772535589749]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_CreateMeeting_Nominal [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772537147746]: 
+    value: olivierp@convertigo.onmicrosoft.com
+  ↓subject [variables.TestCaseVariable-1772537147810]: 
+    value: Weekly Project Sync
+  ↓startIso [variables.TestCaseVariable-1772537147883]: 
+    value: 2026-03-15T10:00:00
+  ↓endIso [variables.TestCaseVariable-1772537147961]: 
+    value: 2026-03-15T10:30:00
+  ↓bodyHtml [variables.TestCaseVariable-1772537148140]: 
+    value: <p>Meeting created from Convertigo backend.</p>
+  ↓customMetadataJson [variables.TestCaseVariable-1772537148249]: 
+  ↓isOnlineMeeting [variables.TestCaseVariable-1772537148370]: 
+    value: true
+  ↓metadataExtensionId [variables.TestCaseVariable-1772537148492]: 
+    value: com.convertigo.meeting
+  ↓attendeesJson [variables.TestCaseVariable-1772538727633]: 
+    description: JSON array of attendees
+    required: true
+    value: '[{"email":"julie.dupont@convertigo.onmicrosoft.com","name":"Julie Dupont","type":"required"},{"email":"paul.martin@convertigo.onmicrosoft.com","name":"Paul Martin","type":"optional"}]'
