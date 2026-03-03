@@ -1,0 +1,166 @@
+accessibility: Hidden
+comment: Lists recurring meeting instances for a series master event in a specific time window.
+↓inputVars [steps.InputVariablesStep-1772553003001]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteListMeetingInstances [steps.SimpleStep-1772553003002]: 
+  comment: Calls Microsoft Graph instances endpoint and returns normalized event payloads.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "list_event_instances";
+    var requiredPermission = "Calendars.Read|Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var seriesMasterEventId = gm_require("eventId", eventId);
+    	var windowStart = gm_require("windowStartIso", windowStartIso);
+    	var windowEnd = gm_require("windowEndIso", windowEndIso);
+    	
+    	var pageTop = gm_parseInteger("top", top, 100);
+    	if (pageTop < 1) {
+    		pageTop = 1;
+    	}
+    	if (pageTop > 999) {
+    		pageTop = 999;
+    	}
+    	
+    	var pageSkip = gm_parseInteger("skip", skip, 0);
+    	if (pageSkip < 0) {
+    		pageSkip = 0;
+    	}
+    	
+    	var shouldIncludeAttendees = gm_toBoolean(includeAttendees, false);
+    	var shouldIncludeBody = gm_toBoolean(includeBody, false);
+    	var shouldIncludeCancelled = gm_toBoolean(includeCancelled, true);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+    	var requestUrl = gm_getGraphBaseUrl(graphClient) + "/users/" + gm_urlEncode(organizer) + "/events/" + gm_urlEncode(seriesMasterEventId) + "/instances";
+    	requestUrl = gm_appendQueryParam(requestUrl, "startDateTime", windowStart);
+    	requestUrl = gm_appendQueryParam(requestUrl, "endDateTime", windowEnd);
+    	requestUrl = gm_appendQueryParam(requestUrl, "$top", String(pageTop));
+    	if (pageSkip > 0) {
+    		requestUrl = gm_appendQueryParam(requestUrl, "$skip", String(pageSkip));
+    	}
+    	if (!gm_isBlank(orderBy)) {
+    		requestUrl = gm_appendQueryParam(requestUrl, "$orderby", String(orderBy));
+    	}
+    	
+    	var instancesResponse = graphClient.users().byUserId(organizer).events().byEventId(seriesMasterEventId).instances().withUrl(requestUrl).get();
+    	var mappedInstances = gm_eventsToArray(instancesResponse.getValue(), shouldIncludeAttendees, shouldIncludeBody);
+    	
+    	var items = [];
+    	var i;
+    	for (i = 0; i < mappedInstances.length; i++) {
+    		var candidate = mappedInstances[i];
+    		if (shouldIncludeCancelled || candidate.isCancelled !== true) {
+    			items.push(candidate);
+    		}
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		organizerUserId: organizer,
+    		seriesMasterEventId: seriesMasterEventId,
+    		count: items.length,
+    		nextLink: gm_getOdataNextLink(instancesResponse),
+    		query: {
+    			windowStartIso: windowStart,
+    			windowEndIso: windowEnd,
+    			top: pageTop,
+    			skip: pageSkip,
+    			orderBy: gm_safeString(orderBy),
+    			includeAttendees: shouldIncludeAttendees,
+    			includeBody: shouldIncludeBody,
+    			includeCancelled: shouldIncludeCancelled
+    		},
+    		items: items
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772553003003]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772553003004]: 
+  comment: Target organizer mailbox (user id or UPN) owning the recurring event.
+  description: Organizer user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772553003005]: 
+  comment: Series master event id used to list recurring instances.
+  description: Series master event id
+  required: true
+↓windowStartIso [variables.RequestableVariable-1772553003006]: 
+  comment: Start datetime of the instances lookup window (ISO-8601).
+  description: Instances window start ISO-8601
+  required: true
+↓windowEndIso [variables.RequestableVariable-1772553003007]: 
+  comment: End datetime of the instances lookup window (ISO-8601).
+  description: Instances window end ISO-8601
+  required: true
+↓top [variables.RequestableVariable-1772553003008]: 
+  comment: Maximum number of instances returned in one page.
+  description: Page size
+  value: 100
+↓skip [variables.RequestableVariable-1772553003009]: 
+  comment: Optional page offset for instances listing.
+  description: Page offset
+  value: 0
+↓orderBy [variables.RequestableVariable-1772553003010]: 
+  comment: Optional OData order by expression for instances listing.
+  description: OData order by
+  value: start/dateTime asc
+↓includeAttendees [variables.RequestableVariable-1772553003011]: 
+  comment: true includes attendee arrays in each instance.
+  description: Include attendees in output
+  value: false
+↓includeBody [variables.RequestableVariable-1772553003012]: 
+  comment: true includes body payload in each instance.
+  description: Include body in output
+  value: false
+↓includeCancelled [variables.RequestableVariable-1772553003013]: 
+  comment: true keeps cancelled instances in the response.
+  description: Include cancelled instances
+  value: true
+↓accessToken [variables.RequestableVariable-1772553003014]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772553003015]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772553003016]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772553003017]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_ListInstances_Window [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772553003018]: 
+    value: organizer@contoso.com
+  ↓eventId [variables.TestCaseVariable-1772553003019]: 
+    value: AQMkADAwATM3ZmYAZC1jNzU5LTYzNGEtMDACLTAwCgBGAAAD6exampleSeriesMaster==
+  ↓windowStartIso [variables.TestCaseVariable-1772553003020]: 
+    value: 2026-03-01T00:00:00
+  ↓windowEndIso [variables.TestCaseVariable-1772553003021]: 
+    value: 2026-04-01T00:00:00

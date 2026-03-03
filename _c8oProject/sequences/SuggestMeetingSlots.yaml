@@ -1,5 +1,4 @@
 accessibility: Hidden
-authenticatedContextRequired: true
 comment: Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule.
 ↓inputVars [steps.InputVariablesStep-1772534734075]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

@@ -1,5 +1,4 @@
 accessibility: Hidden
-authenticatedContextRequired: true
 comment: Plans an available slot and creates an Outlook/Teams meeting event in one backend call.
 ↓inputVars [steps.InputVariablesStep-1772536001001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

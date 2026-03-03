@@ -1,0 +1,126 @@
+accessibility: Hidden
+comment: Sends attendee response (accept, decline, tentative) for a meeting event.
+↓inputVars [steps.InputVariablesStep-1772553004001]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteRespondToMeetingEvent [steps.SimpleStep-1772553004002]: 
+  comment: Calls Microsoft Graph meeting response action endpoint for the target attendee mailbox.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "respond_event";
+    var requiredPermission = "Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var targetEventId = gm_require("eventId", eventId);
+    	var requestedAction = gm_defaultString(responseAction, "accept").toLowerCase();
+    	var sendReply = gm_toBoolean(sendResponse, true);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+    	var eventBuilder = graphClient.users().byUserId(targetUser).events().byEventId(targetEventId);
+    	var actionUsed = "";
+    	
+    	if (requestedAction === "accept") {
+    		var acceptBody = gm_newGraphObject("com.microsoft.graph.users.item.events.item.accept.AcceptPostRequestBody");
+    		acceptBody.setSendResponse(java.lang.Boolean.valueOf(String(sendReply)));
+    		if (!gm_isBlank(comment)) {
+    			acceptBody.setComment(String(comment));
+    		}
+    		eventBuilder.accept().post(acceptBody);
+    		actionUsed = "accept";
+    	} else if (requestedAction === "decline") {
+    		var declineBody = gm_newGraphObject("com.microsoft.graph.users.item.events.item.decline.DeclinePostRequestBody");
+    		declineBody.setSendResponse(java.lang.Boolean.valueOf(String(sendReply)));
+    		if (!gm_isBlank(comment)) {
+    			declineBody.setComment(String(comment));
+    		}
+    		eventBuilder.decline().post(declineBody);
+    		actionUsed = "decline";
+    	} else if (requestedAction === "tentativelyaccept" || requestedAction === "tentative") {
+    		var tentativeBody = gm_newGraphObject("com.microsoft.graph.users.item.events.item.tentativelyaccept.TentativelyAcceptPostRequestBody");
+    		tentativeBody.setSendResponse(java.lang.Boolean.valueOf(String(sendReply)));
+    		if (!gm_isBlank(comment)) {
+    			tentativeBody.setComment(String(comment));
+    		}
+    		eventBuilder.tentativelyAccept().post(tentativeBody);
+    		actionUsed = "tentativelyAccept";
+    	} else {
+    		throw new java.lang.IllegalArgumentException("responseAction must be accept, decline or tentativelyAccept");
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		eventId: targetEventId,
+    		responseAction: actionUsed,
+    		sendResponse: sendReply,
+    		comment: gm_safeString(comment)
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772553004003]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772553004004]: 
+  comment: Target attendee mailbox (user id or UPN) sending the meeting response.
+  description: Attendee user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772553004005]: 
+  comment: Target meeting event id for the attendee response.
+  description: Outlook event id
+  required: true
+↓responseAction [variables.RequestableVariable-1772553004006]: 
+  comment: Response action value accept, decline or tentativelyAccept.
+  description: Response action
+  value: accept
+↓comment [variables.RequestableVariable-1772553004007]: 
+  comment: Optional attendee comment sent with meeting response.
+  description: Optional response comment
+↓sendResponse [variables.RequestableVariable-1772553004008]: 
+  comment: true sends response message to organizer, false updates status silently.
+  description: Send response message
+  value: true
+↓accessToken [variables.RequestableVariable-1772553004009]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772553004010]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772553004011]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772553004012]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_Respond_Accept [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772553004013]: 
+    value: attendee@contoso.com
+  ↓eventId [variables.TestCaseVariable-1772553004014]: 
+    value: AQMkADAwATM3ZmYAZC1jNzU5LTYzNGEtMDACLTAwCgBGAAAD6exampleEvent==
+  ↓responseAction [variables.TestCaseVariable-1772553004015]: 
+    value: accept
+  ↓sendResponse [variables.TestCaseVariable-1772553004016]: 
+    value: true

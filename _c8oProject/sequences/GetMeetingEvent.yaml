@@ -1,5 +1,4 @@
 accessibility: Hidden
-authenticatedContextRequired: true
 comment: Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension.
 ↓inputVars [steps.InputVariablesStep-1772536002001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

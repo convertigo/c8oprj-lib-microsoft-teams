@@ -966,3 +966,102 @@ function gm_extensionsToArray(extensionList) {
   }
   return values;
 }
+
+function gm_encodeQueryValue(value) {
+  return java.net.URLEncoder.encode(String(value), "UTF-8").replace("+", "%20");
+}
+
+function gm_appendQueryParam(url, name, value) {
+  if (gm_isBlank(value)) {
+    return String(url);
+  }
+  var separator = String(url).indexOf("?") >= 0 ? "&" : "?";
+  return String(url) + separator + String(name) + "=" + gm_encodeQueryValue(value);
+}
+
+function gm_odataEscapeString(value) {
+  return String(value).replace(/'/g, "''");
+}
+
+function gm_offsetDateTimeToString(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value);
+}
+
+function gm_eventToObject(event, includeAttendees, includeBody) {
+  if (event === null || event === undefined) {
+    return null;
+  }
+  var eventObject = {
+    eventId: gm_safeString(event.getId()),
+    iCalUId: gm_safeString(event.getICalUId()),
+    transactionId: gm_safeString(event.getTransactionId()),
+    seriesMasterId: gm_safeString(event.getSeriesMasterId()),
+    type: gm_enumValue(event.getType()),
+    subject: gm_safeString(event.getSubject()),
+    webLink: gm_safeString(event.getWebLink()),
+    isOnlineMeeting: event.getIsOnlineMeeting(),
+    onlineMeetingProvider: gm_enumValue(event.getOnlineMeetingProvider()),
+    onlineMeetingUrl: gm_safeString(event.getOnlineMeetingUrl()),
+    showAs: gm_enumValue(event.getShowAs()),
+    isCancelled: event.getIsCancelled(),
+    isOrganizer: event.getIsOrganizer(),
+    isAllDay: event.getIsAllDay(),
+    createdDateTime: gm_offsetDateTimeToString(event.getCreatedDateTime()),
+    lastModifiedDateTime: gm_offsetDateTimeToString(event.getLastModifiedDateTime()),
+    start: gm_dttzToObject(event.getStart()),
+    end: gm_dttzToObject(event.getEnd()),
+    organizer: gm_recipientToObject(event.getOrganizer()),
+    location: gm_locationToObject(event.getLocation()),
+    onlineMeeting: gm_onlineMeetingInfoToObject(event.getOnlineMeeting())
+  };
+
+  if (includeAttendees) {
+    eventObject.attendees = gm_attendeesToArray(event.getAttendees());
+  }
+  if (includeBody) {
+    eventObject.body = gm_itemBodyToObject(event.getBody());
+  }
+  return eventObject;
+}
+
+function gm_eventsToArray(eventList, includeAttendees, includeBody) {
+  var values = [];
+  if (eventList === null || eventList === undefined) {
+    return values;
+  }
+  var i;
+  for (i = 0; i < eventList.size(); i++) {
+    var mapped = gm_eventToObject(eventList.get(i), includeAttendees, includeBody);
+    if (mapped !== null) {
+      values.push(mapped);
+    }
+  }
+  return values;
+}
+
+function gm_getOdataNextLink(collectionResponse) {
+  if (collectionResponse === null || collectionResponse === undefined) {
+    return "";
+  }
+  try {
+    var nextLink = collectionResponse.getOdataNextLink();
+    if (!gm_isBlank(nextLink)) {
+      return String(nextLink);
+    }
+  } catch (ignoreGetter) {
+  }
+  try {
+    var additionalData = collectionResponse.getAdditionalData();
+    if (additionalData !== null && additionalData.containsKey("@odata.nextLink")) {
+      var raw = additionalData.get("@odata.nextLink");
+      if (!gm_isBlank(raw)) {
+        return String(raw);
+      }
+    }
+  } catch (ignoreAdditionalData) {
+  }
+  return "";
+}

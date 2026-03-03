@@ -1,0 +1,261 @@
+accessibility: Hidden
+comment: Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values.
+↓inputVars [steps.InputVariablesStep-1772553002001]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteFindMeetingEvent [steps.SimpleStep-1772553002002]: 
+  comment: Calls Microsoft Graph to find matching events and optional metadata extension.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "find_event";
+    var requiredPermission = "Calendars.Read|Calendars.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var organizer = gm_require("organizerUserId", organizerUserId);
+    	var explicitEventId = gm_safeString(eventId);
+    	var lookupIcal = gm_safeString(iCalUId);
+    	var lookupTransaction = gm_safeString(transactionId);
+    	var metadataKeyValue = gm_safeString(metadataKey);
+    	var metadataExpectedValue = gm_safeString(metadataValue);
+    	var shouldCheckMetadata = !gm_isBlank(metadataKeyValue) || !gm_isBlank(metadataExpectedValue);
+    	var shouldIncludeMetadata = gm_toBoolean(includeMetadataExtension, false) || shouldCheckMetadata;
+    	
+    	if (gm_isBlank(explicitEventId) && gm_isBlank(lookupIcal) && gm_isBlank(lookupTransaction) && !shouldCheckMetadata) {
+    		throw new java.lang.IllegalArgumentException("Provide eventId, iCalUId, transactionId or metadataKey/metadataValue");
+    	}
+    	
+    	var maxCount = gm_parseInteger("maxResults", maxResults, 20);
+    	if (maxCount < 1) {
+    		maxCount = 1;
+    	}
+    	if (maxCount > 200) {
+    		maxCount = 200;
+    	}
+    	
+    	var shouldIncludeAttendees = gm_toBoolean(includeAttendees, false);
+    	var shouldIncludeBody = gm_toBoolean(includeBody, false);
+    	var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    	
+    	var windowStart = gm_safeString(windowStartIso);
+    	var windowEnd = gm_safeString(windowEndIso);
+    	var hasWindow = !gm_isBlank(windowStart) || !gm_isBlank(windowEnd);
+    	if (hasWindow) {
+    		windowStart = gm_require("windowStartIso", windowStartIso);
+    		windowEnd = gm_require("windowEndIso", windowEndIso);
+    	}
+    	
+    	if (shouldCheckMetadata && gm_isBlank(explicitEventId) && gm_isBlank(lookupIcal) && gm_isBlank(lookupTransaction) && !hasWindow) {
+    		throw new java.lang.IllegalArgumentException("windowStartIso and windowEndIso are required for metadata-only search");
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	
+    	var metadataMatches = function(metadataExtensionObject) {
+    		if (!shouldCheckMetadata) {
+    			return true;
+    		}
+    		if (metadataExtensionObject === null || metadataExtensionObject === undefined) {
+    			return false;
+    		}
+    		var additionalData = metadataExtensionObject.additionalData;
+    		if (additionalData === null || additionalData === undefined) {
+    			return false;
+    		}
+    		if (!gm_isBlank(metadataKeyValue)) {
+    			if (!Object.prototype.hasOwnProperty.call(additionalData, metadataKeyValue)) {
+    				return false;
+    			}
+    			if (gm_isBlank(metadataExpectedValue)) {
+    				return true;
+    			}
+    			return String(additionalData[metadataKeyValue]) === String(metadataExpectedValue);
+    		}
+    		if (gm_isBlank(metadataExpectedValue)) {
+    			return true;
+    		}
+    		var key;
+    		for (key in additionalData) {
+    			if (Object.prototype.hasOwnProperty.call(additionalData, key) && String(additionalData[key]) === String(metadataExpectedValue)) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	};
+    	
+    	var attachMetadata = function(targetEventObject) {
+    		var extensionObject = null;
+    		try {
+    			var extension = graphClient.users().byUserId(organizer).events().byEventId(targetEventObject.eventId).extensions().byExtensionId(extensionName).get();
+    			extensionObject = gm_extensionToObject(extension);
+    		} catch (ignoreMissingExtension) {
+    			extensionObject = null;
+    		}
+    		targetEventObject.metadataExtension = extensionObject;
+    		return metadataMatches(extensionObject);
+    	};
+    	
+    	var results = [];
+    	if (!gm_isBlank(explicitEventId)) {
+    		var foundEvent = graphClient.users().byUserId(organizer).events().byEventId(explicitEventId).get();
+    		var mappedEvent = gm_eventToObject(foundEvent, shouldIncludeAttendees, shouldIncludeBody);
+    		var keepEvent = true;
+    		if (shouldIncludeMetadata) {
+    			keepEvent = attachMetadata(mappedEvent);
+    		}
+    		if (keepEvent) {
+    			results.push(mappedEvent);
+    		}
+    	} else {
+    		var baseUrl = gm_getGraphBaseUrl(graphClient) + "/users/" + gm_urlEncode(organizer) + (hasWindow ? "/calendarView" : "/events");
+    		var requestUrl = baseUrl;
+    		if (hasWindow) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "startDateTime", windowStart);
+    			requestUrl = gm_appendQueryParam(requestUrl, "endDateTime", windowEnd);
+    		}
+    		
+    		var filters = [];
+    		if (!gm_isBlank(lookupIcal)) {
+    			filters.push("iCalUId eq ''" + gm_odataEscapeString(lookupIcal) + "''");
+    		}
+    		if (!gm_isBlank(lookupTransaction)) {
+    			filters.push("transactionId eq ''" + gm_odataEscapeString(lookupTransaction) + "''");
+    		}
+    		if (filters.length > 0) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "$filter", filters.join(" and "));
+    		}
+    		requestUrl = gm_appendQueryParam(requestUrl, "$top", String(maxCount));
+    		requestUrl = gm_appendQueryParam(requestUrl, "$orderby", "lastModifiedDateTime desc");
+    		
+    		var eventsResponse = hasWindow
+    			? graphClient.users().byUserId(organizer).calendarView().withUrl(requestUrl).get()
+    			: graphClient.users().byUserId(organizer).events().withUrl(requestUrl).get();
+    		
+    		var values = eventsResponse.getValue();
+    		if (values !== null) {
+    			var i;
+    			for (i = 0; i < values.size() && results.length < maxCount; i++) {
+    				var eventObject = gm_eventToObject(values.get(i), shouldIncludeAttendees, shouldIncludeBody);
+    				if (eventObject === null) {
+    					continue;
+    				}
+    				
+    				var keepListedEvent = true;
+    				if (shouldIncludeMetadata) {
+    					keepListedEvent = attachMetadata(eventObject);
+    				}
+    				if (keepListedEvent) {
+    					results.push(eventObject);
+    				}
+    			}
+    		}
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		organizerUserId: organizer,
+    		matchedCount: results.length,
+    		criteria: {
+    			eventId: explicitEventId,
+    			iCalUId: lookupIcal,
+    			transactionId: lookupTransaction,
+    			metadataExtensionId: extensionName,
+    			metadataKey: metadataKeyValue,
+    			metadataValue: metadataExpectedValue,
+    			includeMetadataExtension: shouldIncludeMetadata,
+    			windowStartIso: hasWindow ? windowStart : "",
+    			windowEndIso: hasWindow ? windowEnd : "",
+    			maxResults: maxCount
+    		},
+    		items: results
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772553002003]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓organizerUserId [variables.RequestableVariable-1772553002004]: 
+  comment: Target organizer mailbox (user id or UPN) owning searched events.
+  description: Organizer user id or principal name
+  required: true
+↓eventId [variables.RequestableVariable-1772553002005]: 
+  comment: Optional direct event id lookup value.
+  description: Optional event id
+↓iCalUId [variables.RequestableVariable-1772553002006]: 
+  comment: Optional iCalUId lookup value.
+  description: Optional iCalUId
+↓transactionId [variables.RequestableVariable-1772553002007]: 
+  comment: Optional transaction id lookup value.
+  description: Optional transaction id
+↓metadataExtensionId [variables.RequestableVariable-1772553002008]: 
+  comment: Open extension identifier used for metadata lookup.
+  description: Metadata extension id
+  value: com.convertigo.meeting
+↓metadataKey [variables.RequestableVariable-1772553002009]: 
+  comment: Optional metadata key to match in extension additionalData.
+  description: Metadata key
+↓metadataValue [variables.RequestableVariable-1772553002010]: 
+  comment: Optional metadata value to match in extension additionalData.
+  description: Metadata value
+↓windowStartIso [variables.RequestableVariable-1772553002011]: 
+  comment: Optional start datetime for list-based lookup (ISO-8601), required with windowEndIso.
+  description: Optional calendar window start ISO-8601
+↓windowEndIso [variables.RequestableVariable-1772553002012]: 
+  comment: Optional end datetime for list-based lookup (ISO-8601), required with windowStartIso.
+  description: Optional calendar window end ISO-8601
+↓maxResults [variables.RequestableVariable-1772553002013]: 
+  comment: Maximum number of matching events returned.
+  description: Maximum results
+  value: 20
+↓includeAttendees [variables.RequestableVariable-1772553002014]: 
+  comment: true includes attendee arrays in matched events.
+  description: Include attendees in output
+  value: false
+↓includeBody [variables.RequestableVariable-1772553002015]: 
+  comment: true includes body payload in matched events.
+  description: Include body in output
+  value: false
+↓includeMetadataExtension [variables.RequestableVariable-1772553002023]: 
+  comment: true fetches metadata extension object for each matched event.
+  description: Include metadata extension in output
+  value: false
+↓accessToken [variables.RequestableVariable-1772553002016]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772553002017]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772553002018]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772553002019]: 
+  comment: Azure Entra application client secret used for app-only token acquisition.
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_FindMeeting_ByIcal [core.TestCase]: 
+  ↓organizerUserId [variables.TestCaseVariable-1772553002020]: 
+    value: organizer@contoso.com
+  ↓iCalUId [variables.TestCaseVariable-1772553002021]: 
+    value: 040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F60708000000000000000010000000ABCDEF1234567890ABCDEF1234567890
+  ↓maxResults [variables.TestCaseVariable-1772553002022]: 
+    value: 5

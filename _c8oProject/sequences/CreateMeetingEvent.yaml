@@ -1,5 +1,4 @@
 accessibility: Hidden
-authenticatedContextRequired: true
 comment: Creates an Outlook calendar event with Teams online meeting link.
 ↓inputVars [steps.InputVariablesStep-1772534755625]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
@@ -148,9 +147,9 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
   ↓subject [variables.TestCaseVariable-1772537147810]: 
     value: Weekly Project Sync
   ↓startIso [variables.TestCaseVariable-1772537147883]: 
-    value: 2026-03-15T10:00:00
+    value: 2026-04-16T10:00:00
   ↓endIso [variables.TestCaseVariable-1772537147961]: 
-    value: 2026-03-15T10:30:00
+    value: 2026-04-16T10:30:00
   ↓bodyHtml [variables.TestCaseVariable-1772537148140]: 
     value: <p>Meeting created from Convertigo backend.</p>
   ↓customMetadataJson [variables.TestCaseVariable-1772537148249]: 

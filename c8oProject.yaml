@@ -4,13 +4,20 @@
   contextTimeout: 59
   corsOrigin: =Origin
   httpSessionTimeout: 60
-  version: 8.0.0.0
+  version: 8.0.0.1
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓AttachMeetingCustomMetadata [sequences.GenericSequence]: 🗏 sequences/AttachMeetingCustomMetadata.yaml
   ↓BuildGraphFlatJar [sequences.GenericSequence]: 🗏 sequences/BuildGraphFlatJar.yaml
   ↓CancelMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CancelMeetingEvent.yaml
   ↓CreateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CreateMeetingEvent.yaml
+  ↓FindMeetingEvent [sequences.GenericSequence]: 🗏 sequences/FindMeetingEvent.yaml
   ↓GetMeetingEvent [sequences.GenericSequence]: 🗏 sequences/GetMeetingEvent.yaml
+  ↓ListMeetingEvents [sequences.GenericSequence]: 🗏 sequences/ListMeetingEvents.yaml
+  ↓ListMeetingInstances [sequences.GenericSequence]: 🗏 sequences/ListMeetingInstances.yaml
   ↓PlanAndCreateMeeting [sequences.GenericSequence]: 🗏 sequences/PlanAndCreateMeeting.yaml
+  ↓RenewMeetingSubscription [sequences.GenericSequence]: 🗏 sequences/RenewMeetingSubscription.yaml
+  ↓RespondToMeetingEvent [sequences.GenericSequence]: 🗏 sequences/RespondToMeetingEvent.yaml
+  ↓SubscribeMeetingChanges [sequences.GenericSequence]: 🗏 sequences/SubscribeMeetingChanges.yaml
   ↓SuggestMeetingSlots [sequences.GenericSequence]: 🗏 sequences/SuggestMeetingSlots.yaml
+  ↓UnsubscribeMeetingChanges [sequences.GenericSequence]: 🗏 sequences/UnsubscribeMeetingChanges.yaml
   ↓UpdateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/UpdateMeetingEvent.yaml
