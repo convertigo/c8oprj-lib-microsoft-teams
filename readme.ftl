@@ -80,6 +80,16 @@
   <#return key>
 </#function>
 
+<#-- toHttpsRemoteUrl: rewrites git SSH GitHub remote URLs to HTTPS -->
+<#function toHttpsRemoteUrl url>
+  <#assign value = (url!"")?trim>
+  <#assign value = value?replace("=ssh://git@github.com/", "=https://github.com/")>
+  <#assign value = value?replace("=git@github.com:", "=https://github.com/")>
+  <#assign value = value?replace("ssh://git@github.com/", "https://github.com/")>
+  <#assign value = value?replace("git@github.com:", "https://github.com/")>
+  <#return value>
+</#function>
+
 <#-- MACROS -->
 <#-- header: generates a header with given text as heading and add it to TOC with its anchor link -->
 <#macro header toc anchors heading text>
@@ -127,12 +137,12 @@ ${title}${lineBreak}
      <tr><td>Usage</td><td>Click the copy button at the end of the line</td></tr>
      <tr><td>To contribute</td><td>${lineBreak}
      ```
-     ${project.contributeUrl}
+     ${toHttpsRemoteUrl(project.contributeUrl)}
      ```
      </td></tr>
      <tr><td>To simply use</td><td>${lineBreak}
      ```
-     ${project.usageUrl}
+     ${toHttpsRemoteUrl(project.usageUrl)}
      ```
      </td></tr>
     </table>
@@ -149,12 +159,12 @@ ${title}${lineBreak}
      <tr><td>Usage</td><td>Cliquez sur le bouton de copie en fin de ligne</td></tr>
      <tr><td>Pour contribuer</td><td>${lineBreak}
      ```
-     ${lineBreak}${project.contributeUrl}
+     ${lineBreak}${toHttpsRemoteUrl(project.contributeUrl)}
      ```
      </td></tr>
      <tr><td>Pour simplement utiliser</td><td>${lineBreak}
      ```
-     ${lineBreak}${project.usageUrl}
+     ${lineBreak}${toHttpsRemoteUrl(project.usageUrl)}
      ```
      </td></tr>
     </table>
@@ -189,6 +199,57 @@ ${lineBreak}
 <#if on("installation") && (project.url?length > 0) && (project.url != project.name)>
 	<@header toc=toc anchors=anchors heading="##" text=help("installation") />
 	<@installation />
+</#if>
+<#if locale == "US">
+	<@header toc=toc anchors=anchors heading="##" text="Configuration Symbols" />
+These symbols can be set at project level and reused by all sequences.
+
+<table>
+<tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.tenantId}</#noparse></code></td><td>Yes (app-only)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientId}</#noparse></code></td><td>Yes (app-only)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientSecret.secret}</#noparse></code></td><td>Yes (app-only)</td><td>Yes</td><td>Application client secret.</td></tr>
+</table>
+
+	<@header toc=toc anchors=anchors heading="##" text="Authentication Model" />
+- Delegated mode: pass `accessToken`; tenant/client/secret are ignored.
+- Application mode: leave `accessToken` empty and provide tenant/client/secret.
+- Sequence responses expose `tokenMode` (`delegated` or `application`) for diagnostics.
+
+	<@header toc=toc anchors=anchors heading="##" text="Required Azure Permissions" />
+Grant application permissions (or delegated equivalents) to Microsoft Graph:
+
+<table>
+<tr><th>Functional scope</th><th>Recommended permissions</th></tr>
+<tr><td>Create/update/cancel meeting events</td><td><code>Calendars.ReadWrite</code></td></tr>
+<tr><td>Read meeting events</td><td><code>Calendars.Read</code> or <code>Calendars.ReadWrite</code></td></tr>
+<tr><td>Find availability / suggested slots</td><td><code>Calendars.Read.Shared</code> and/or <code>Calendars.ReadWrite</code> (free/busy usage)</td></tr>
+</table>
+
+	<@header toc=toc anchors=anchors heading="##" text="Known Limitations" />
+- Some events/mailboxes do not support listing event extensions (`/events/{id}/extensions`) and Graph returns: `The OData request is not supported.`
+- In `GetMeetingEvent`, keep `includeExtensions=true` with `failIfExtensionsUnsupported=false` to return event data and get:
+  - `extensionsUnsupported=true`
+  - `extensionsUnsupportedError` with the Graph message
+- Set `failIfExtensionsUnsupported=true` only when extension listing is mandatory.
+
+	<@header toc=toc anchors=anchors heading="##" text="Payload Examples" />
+`attendeesJson` example:
+```json
+[
+  { "email": "alice@contoso.com", "name": "Alice", "type": "required" },
+  { "email": "bob@contoso.com", "name": "Bob", "type": "optional" }
+]
+```
+
+`customMetadataJson` example:
+```json
+{
+  "businessId": "REQ-2026-00042",
+  "sourceApp": "MyPortal",
+  "labels": ["customer", "priority-high"]
+}
+```
 </#if>
 <#if on("references") && has(project,"references")>
   	<@header toc=toc anchors=anchors heading="##" text=help("references") />
@@ -294,4 +355,3 @@ ${help("more.info")} : [documentation](./project.md)
 
 <#-- output project content -->
 ${content}
-

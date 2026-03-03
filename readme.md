@@ -9,6 +9,11 @@ Mashup Sequencer project
 For more technical informations : [documentation](./project.md)
 
 - [Installation](#installation)
+- [Configuration Symbols](#configuration-symbols)
+- [Authentication Model](#authentication-model)
+- [Required Azure Permissions](#required-azure-permissions)
+- [Known Limitations](#known-limitations)
+- [Payload Examples](#payload-examples)
 - [Sequences](#sequences)
     - [AttachMeetingCustomMetadata](#attachmeetingcustommetadata)
     - [BuildGraphFlatJar](#buildgraphflatjar)
@@ -33,19 +38,73 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     Lib_Microsoft_Teams=/Users/charlesg/dev/convertigo/studios/Studio_8.4_stable/Lib_Microsoft_Teams/.git:branch=master
+     Lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams.git:branch=8.0.0.0
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     Lib_Microsoft_Teams=/Users/charlesg/dev/convertigo/studios/Studio_8.4_stable/Lib_Microsoft_Teams//archive/master.zip
+     Lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams/archive/8.0.0.0.zip
      ```
      </td></tr>
     </table>
 3. Click the `Finish` button. This will automatically import the __Lib_Microsoft_Teams__ project
 
 
+## Configuration Symbols
+
+These symbols can be set at project level and reused by all sequences.
+
+<table>
+<tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
+<tr><td><code>${Lib_Microsoft_Teams.tenantId}</code></td><td>Yes (app-only)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.clientId}</code></td><td>Yes (app-only)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.clientSecret.secret}</code></td><td>Yes (app-only)</td><td>Yes</td><td>Application client secret.</td></tr>
+</table>
+
+## Authentication Model
+
+- Delegated mode: pass `accessToken`; tenant/client/secret are ignored.
+- Application mode: leave `accessToken` empty and provide tenant/client/secret.
+- Sequence responses expose `tokenMode` (`delegated` or `application`) for diagnostics.
+
+## Required Azure Permissions
+
+Grant application permissions (or delegated equivalents) to Microsoft Graph:
+
+<table>
+<tr><th>Functional scope</th><th>Recommended permissions</th></tr>
+<tr><td>Create/update/cancel meeting events</td><td><code>Calendars.ReadWrite</code></td></tr>
+<tr><td>Read meeting events</td><td><code>Calendars.Read</code> or <code>Calendars.ReadWrite</code></td></tr>
+<tr><td>Find availability / suggested slots</td><td><code>Calendars.Read.Shared</code> and/or <code>Calendars.ReadWrite</code> (free/busy usage)</td></tr>
+</table>
+
+## Known Limitations
+
+- Some events/mailboxes do not support listing event extensions (`/events/{id}/extensions`) and Graph returns: `The OData request is not supported.`
+- In `GetMeetingEvent`, keep `includeExtensions=true` with `failIfExtensionsUnsupported=false` to return event data and get:
+  - `extensionsUnsupported=true`
+  - `extensionsUnsupportedError` with the Graph message
+- Set `failIfExtensionsUnsupported=true` only when extension listing is mandatory.
+
+## Payload Examples
+
+`attendeesJson` example:
+```json
+[
+  { "email": "alice@contoso.com", "name": "Alice", "type": "required" },
+  { "email": "bob@contoso.com", "name": "Bob", "type": "optional" }
+]
+```
+
+`customMetadataJson` example:
+```json
+{
+  "businessId": "REQ-2026-00042",
+  "sourceApp": "MyPortal",
+  "labels": ["customer", "priority-high"]
+}
+```
 ## Sequences
 
 ### AttachMeetingCustomMetadata
@@ -432,6 +491,5 @@ Updates an existing Outlook/Teams meeting event.
 <td>timeZone</td><td>Time zone used for updated start and end values.</td>
 </tr>
 </table>
-
 
 
