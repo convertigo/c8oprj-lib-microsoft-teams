@@ -5,4 +5,4 @@
   corsOrigin: =Origin
   httpSessionTimeout: 60
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
-  ↓NewSequence [sequences.GenericSequence]: 🗏 sequences/NewSequence.yaml
+  ↓BuildGraphFlatJar [sequences.GenericSequence]: 🗏 sequences/BuildGraphFlatJar.yaml
