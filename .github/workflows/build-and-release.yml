@@ -14,6 +14,9 @@
 
 name: Convertigo CI
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -75,22 +78,101 @@ jobs:
             -Pconvertigo.deploy.user=$C8O_USER \
             -Pconvertigo.deploy.password=$C8O_PASSWORD
 
-      - name: Run post-deploy test plan
-        env:
-          TEST_SERVER_ENDPOINT: ${{ secrets.C8O_SERVEUR_TEST_CONVERTIGO }}
-          C8O_PROJECT: Lib_Microsoft_Teams
-        run: |
-          python3 ./scripts/run_testcases.py
-
       - name: Save application project
         uses: actions/upload-artifact@v4
         with:
           name: project
           path: build/*.car
 
+  post_deploy_tests:
+    runs-on: ubuntu-latest
+    needs: build_and_deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.SSH_KEY }}
+
+      - name: Run post-deploy test plan
+        id: run_tests
+        continue-on-error: true
+        env:
+          TEST_SERVER_ENDPOINT: ${{ secrets.C8O_SERVEUR_TEST_CONVERTIGO }}
+          C8O_PROJECT: Lib_Microsoft_Teams
+        run: |
+          python3 ./scripts/run_testcases.py
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logical-test-plan-report
+          path: build/logical-test-plan-report.json
+
+      - name: Update tests badge JSON
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          
+          report_path = pathlib.Path("build/logical-test-plan-report.json")
+          badge_path = pathlib.Path("badges/tests.json")
+          badge_path.parent.mkdir(parents=True, exist_ok=True)
+          
+          if report_path.exists():
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              summary = report.get("summary", {})
+              passed = int(summary.get("passed", 0))
+              total = int(summary.get("total", 0))
+              failed = int(summary.get("failed", 0))
+              skipped = int(summary.get("skipped", 0))
+              mandatory_failed = int(summary.get("mandatoryFailed", 0))
+              message = f"{passed}/{total} pass, {failed} fail, {skipped} skip"
+              if mandatory_failed > 0:
+                  color = "red"
+              elif failed > 0:
+                  color = "orange"
+              elif skipped > 0:
+                  color = "yellow"
+              else:
+                  color = "brightgreen"
+          else:
+              message = "report missing"
+              color = "lightgrey"
+          
+          badge = {
+              "schemaVersion": 1,
+              "label": "tests",
+              "message": message,
+              "color": color
+          }
+          badge_path.write_text(json.dumps(badge, ensure_ascii=True), encoding="utf-8")
+          print(f"Wrote {badge_path}")
+          PY
+
+      - name: Commit tests badge JSON
+        if: always() && github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add badges/tests.json
+          if git diff --cached --quiet; then
+            echo "No badge change to commit"
+          else
+            git commit -m "ci: update tests badge [skip ci]"
+            git push
+          fi
+
+      - name: Fail job if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "Post-deploy tests failed"
+          exit 1
+
   release:
     if: github.ref_type == 'tag'
-    needs: build_and_deploy
+    needs: [build_and_deploy, post_deploy_tests]
     runs-on: ubuntu-latest
     steps:
       - name: Download CAR File
