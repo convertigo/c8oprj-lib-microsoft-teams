@@ -18,47 +18,103 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
     	var meetingStart = gm_require("startIso", startIso);
     	var meetingEnd = gm_require("endIso", endIso);
     	var meetingTimeZone = gm_defaultString(timeZone, "Europe/Paris");
-    	var attendees = gm_parseAttendees(attendeesJson);
+    	var requestedProvider = gm_normalizeProvider(provider, "graph");
+    	var ewsConfigured = gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword);
+    	var data = null;
     	
-    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
-    	tokenMode = tokenInfo.mode;
-    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
-    	
-        	var event = gm_newGraphObject("com.microsoft.graph.models.Event");
-    	event.setSubject(meetingSubject);
-    	event.setStart(gm_newDateTimeTimeZone(meetingStart, meetingTimeZone));
-    	event.setEnd(gm_newDateTimeTimeZone(meetingEnd, meetingTimeZone));
-    	event.setAttendees(attendees);
-    	event.setIsOnlineMeeting(java.lang.Boolean.valueOf(String(gm_toBoolean(isOnlineMeeting, true))));
-    	
-        	var provider = gm_enumForValue("com.microsoft.graph.models.OnlineMeetingProviderType", onlineMeetingProvider, "teamsForBusiness");
-    	if (provider !== null) {
-    		event.setOnlineMeetingProvider(provider);
-    	}
-    	
-    	if (!gm_isBlank(bodyHtml)) {
-    		event.setBody(gm_newBodyHtml(bodyHtml));
-    	}
-    	
-    	if (!gm_isBlank(idempotencyKey)) {
-    		event.setTransactionId(String(idempotencyKey));
-    	}
-    	
-    	var created = graphClient.users().byUserId(organizer).events().post(event);
-    	var data = {
-    		eventId: gm_safeString(created.getId()),
-    		iCalUId: gm_safeString(created.getICalUId()),
-    		webLink: gm_safeString(created.getWebLink()),
-    		onlineMeetingUrl: gm_safeString(created.getOnlineMeetingUrl()),
-    		start: gm_dttzToObject(created.getStart()),
-    		end: gm_dttzToObject(created.getEnd())
+    	var runGraph = function() {
+    		var attendees = gm_parseAttendees(attendeesJson);
+    		var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    		var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    		
+        		var event = gm_newGraphObject("com.microsoft.graph.models.Event");
+    		event.setSubject(meetingSubject);
+    		event.setStart(gm_newDateTimeTimeZone(meetingStart, meetingTimeZone));
+    		event.setEnd(gm_newDateTimeTimeZone(meetingEnd, meetingTimeZone));
+    		event.setAttendees(attendees);
+    		event.setIsOnlineMeeting(java.lang.Boolean.valueOf(String(gm_toBoolean(isOnlineMeeting, true))));
+    		
+        		var meetingProvider = gm_enumForValue("com.microsoft.graph.models.OnlineMeetingProviderType", onlineMeetingProvider, "teamsForBusiness");
+    		if (meetingProvider !== null) {
+    			event.setOnlineMeetingProvider(meetingProvider);
+    		}
+    		
+    		if (!gm_isBlank(bodyHtml)) {
+    			event.setBody(gm_newBodyHtml(bodyHtml));
+    		}
+    		
+    		if (!gm_isBlank(idempotencyKey)) {
+    			event.setTransactionId(String(idempotencyKey));
+    		}
+    		
+    		var created = graphClient.users().byUserId(organizer).events().post(event);
+    		var graphData = {
+    			eventId: gm_safeString(created.getId()),
+    			iCalUId: gm_safeString(created.getICalUId()),
+    			webLink: gm_safeString(created.getWebLink()),
+    			onlineMeetingUrl: gm_safeString(created.getOnlineMeetingUrl()),
+    			start: gm_dttzToObject(created.getStart()),
+    			end: gm_dttzToObject(created.getEnd()),
+    			providerUsed: "graph"
+    		};
+    		
+    		if (!gm_isBlank(customMetadataJson)) {
+    			var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    			graphData.metadata = gm_upsertOpenExtension(graphClient, organizer, graphData.eventId, extensionName, customMetadataJson, "merge");
+    		}
+    		return {
+    			tokenMode: tokenInfo.mode,
+    			data: graphData
+    		};
     	};
     	
-    	if (!gm_isBlank(customMetadataJson)) {
-    		var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
-    		data.metadata = gm_upsertOpenExtension(graphClient, organizer, data.eventId, extensionName, customMetadataJson, "merge");
+    	var runEws = function() {
+    		var ewsContext = gm_ewsBuildContext(organizer, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId);
+    		var ewsData = gm_ewsCreateEvent(
+    			ewsContext,
+    			meetingSubject,
+    			meetingStart,
+    			meetingEnd,
+    			meetingTimeZone,
+    			attendeesJson,
+    			bodyHtml,
+    			isOnlineMeeting
+    		);
+    		ewsData.providerUsed = "ews";
+    		if (!gm_isBlank(customMetadataJson)) {
+    			ewsData.metadata = {
+    				action: "unsupported",
+    				reason: "Open extensions are not available in EWS mode"
+    			};
+    		}
+    		return {
+    			tokenMode: "ews",
+    			data: ewsData
+    		};
+    	};
+    	
+    	if (requestedProvider === "ews") {
+    		var ewsResult = runEws();
+    		tokenMode = ewsResult.tokenMode;
+    		data = ewsResult.data;
+    	} else {
+    		try {
+    			var graphResult = runGraph();
+    			tokenMode = graphResult.tokenMode;
+    			data = graphResult.data;
+    		} catch (graphError) {
+    			if (requestedProvider === "auto" && ewsConfigured && gm_ewsShouldFallback(graphError)) {
+    				var fallbackResult = runEws();
+    				tokenMode = "ews_fallback";
+    				data = fallbackResult.data;
+    				data.graphFallbackReason = gm_safeString(graphError.message);
+    			} else {
+    				throw graphError;
+    			}
+    		}
     	}
     	
+    	data.providerRequested = requestedProvider;
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
     } catch (e) {
     	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
@@ -122,6 +178,29 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
   comment: Open extension identifier used when customMetadataJson is provided.
   description: Open extension id for custom metadata
   value: com.convertigo.meeting
+↓provider [variables.RequestableVariable-1772559101001]: 
+  comment: Backend provider selection graph|ews|auto.
+  description: Provider selection graph, ews or auto
+  value: graph
+↓ewsUrl [variables.RequestableVariable-1772559101002]: 
+  comment: EWS endpoint URL used when provider is ews or auto fallback.
+  description: EWS endpoint URL
+  value: ${Lib_Microsoft_Teams.ewsUrl}
+↓ewsUsername [variables.RequestableVariable-1772559101003]: 
+  comment: EWS technical username used for Exchange on-prem authentication.
+  description: EWS username
+  value: ${Lib_Microsoft_Teams.ewsUsername}
+↓ewsPassword [variables.RequestableVariable-1772559101004]: 
+  comment: EWS technical password used for Exchange on-prem authentication.
+  description: EWS password
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+  visibility: '-1'
+↓ewsImpersonateUserId [variables.RequestableVariable-1772559101005]: 
+  comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+  description: Optional EWS impersonation mailbox
 ↓accessToken [variables.RequestableVariable-1772535589356]: 
   comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
   description: Delegated Microsoft Graph access token

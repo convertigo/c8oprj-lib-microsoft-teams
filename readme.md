@@ -183,7 +183,22 @@ Cancels an existing Outlook/Teams meeting event.
 <td>eventId</td><td>Target Outlook event id to cancel.</td>
 </tr>
 <tr>
+<td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
+</tr>
+<tr>
+<td>ewsPassword</td><td>EWS technical password used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
+<td>ewsUrl</td><td>EWS endpoint URL used when provider is ews or auto fallback.</td>
+</tr>
+<tr>
+<td>ewsUsername</td><td>EWS technical username used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
 <td>organizerUserId</td><td>Target organizer mailbox (user id or UPN) used to cancel the event.</td>
+</tr>
+<tr>
+<td>provider</td><td>Backend provider selection graph|ews|auto.</td>
 </tr>
 <tr>
 <td>sendCancellation</td><td>true sends official cancellation, false deletes event without cancellation message.</td>
@@ -225,6 +240,18 @@ Creates an Outlook calendar event with Teams online meeting link.
 <td>endIso</td><td>Meeting end in ISO-8601 format (for example 2026-03-03T11:00:00).</td>
 </tr>
 <tr>
+<td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
+</tr>
+<tr>
+<td>ewsPassword</td><td>EWS technical password used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
+<td>ewsUrl</td><td>EWS endpoint URL used when provider is ews or auto fallback.</td>
+</tr>
+<tr>
+<td>ewsUsername</td><td>EWS technical username used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
 <td>idempotencyKey</td><td>Optional transaction id used for idempotent event creation.</td>
 </tr>
 <tr>
@@ -238,6 +265,9 @@ Creates an Outlook calendar event with Teams online meeting link.
 </tr>
 <tr>
 <td>organizerUserId</td><td>Target organizer mailbox (user id or UPN) used to create the event.</td>
+</tr>
+<tr>
+<td>provider</td><td>Backend provider selection graph|ews|auto.</td>
 </tr>
 <tr>
 <td>startIso</td><td>Meeting start in ISO-8601 format (for example 2026-03-03T10:00:00).</td>
@@ -339,6 +369,18 @@ Retrieves a Teams/Outlook meeting event with attendees, slot details and optiona
 <td>eventId</td><td>Target Outlook event id to read.</td>
 </tr>
 <tr>
+<td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
+</tr>
+<tr>
+<td>ewsPassword</td><td>EWS technical password used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
+<td>ewsUrl</td><td>EWS endpoint URL used when provider is ews or auto fallback.</td>
+</tr>
+<tr>
+<td>ewsUsername</td><td>EWS technical username used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
 <td>failIfExtensionsUnsupported</td><td>true returns error when listing extensions is not supported for the targeted event.</td>
 </tr>
 <tr>
@@ -358,6 +400,9 @@ Retrieves a Teams/Outlook meeting event with attendees, slot details and optiona
 </tr>
 <tr>
 <td>organizerUserId</td><td>Target organizer mailbox (user id or UPN) owning the event.</td>
+</tr>
+<tr>
+<td>provider</td><td>Backend provider selection graph|ews|auto.</td>
 </tr>
 <tr>
 <td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
@@ -384,6 +429,18 @@ Lists Outlook meeting events for an organizer mailbox, optionally scoped by a ca
 <td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
 </tr>
 <tr>
+<td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
+</tr>
+<tr>
+<td>ewsPassword</td><td>EWS technical password used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
+<td>ewsUrl</td><td>EWS endpoint URL used when provider is ews or auto fallback.</td>
+</tr>
+<tr>
+<td>ewsUsername</td><td>EWS technical username used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
 <td>filter</td><td>Optional OData filter expression appended to the list query.</td>
 </tr>
 <tr>
@@ -400,6 +457,9 @@ Lists Outlook meeting events for an organizer mailbox, optionally scoped by a ca
 </tr>
 <tr>
 <td>organizerUserId</td><td>Target organizer mailbox (user id or UPN) used to list events.</td>
+</tr>
+<tr>
+<td>provider</td><td>Backend provider selection graph|ews|auto.</td>
 </tr>
 <tr>
 <td>skip</td><td>Optional page offset for events listing.</td>
@@ -795,6 +855,18 @@ Updates an existing Outlook/Teams meeting event.
 <td>eventId</td><td>Target Outlook event id to update.</td>
 </tr>
 <tr>
+<td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
+</tr>
+<tr>
+<td>ewsPassword</td><td>EWS technical password used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
+<td>ewsUrl</td><td>EWS endpoint URL used when provider is ews or auto fallback.</td>
+</tr>
+<tr>
+<td>ewsUsername</td><td>EWS technical username used for Exchange on-prem authentication.</td>
+</tr>
+<tr>
 <td>mergeMode</td><td>Metadata merge mode when extension exists (merge or replace).</td>
 </tr>
 <tr>
@@ -802,6 +874,9 @@ Updates an existing Outlook/Teams meeting event.
 </tr>
 <tr>
 <td>organizerUserId</td><td>Target organizer mailbox (user id or UPN) used to patch the event.</td>
+</tr>
+<tr>
+<td>provider</td><td>Backend provider selection graph|ews|auto.</td>
 </tr>
 <tr>
 <td>sendUpdates</td><td>Update mode none|externalOnly|all, transmitted to Graph when payloadUpdated is true.</td>

@@ -16,27 +16,73 @@ comment: Cancels an existing Outlook/Teams meeting event.
     	var organizer = gm_require("organizerUserId", organizerUserId);
     	var targetEventId = gm_require("eventId", eventId);
     	var shouldSendCancellation = gm_toBoolean(sendCancellation, true);
+    	var requestedProvider = gm_normalizeProvider(provider, "graph");
+    	var ewsConfigured = gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword);
+    	var data = null;
     	
-    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
-    	tokenMode = tokenInfo.mode;
-    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
-    	
-    	var data = {
-    		eventId: targetEventId,
-    		action: ""
+    	var runGraph = function() {
+    		var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    		var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    		var graphData = {
+    			eventId: targetEventId,
+    			action: "",
+    			providerUsed: "graph"
+    		};
+    		
+    		if (shouldSendCancellation) {
+    			var cancelBody = new Packages.com.microsoft.graph.users.item.events.item.cancel.CancelPostRequestBody();
+    			cancelBody.setComment(gm_defaultString(cancelComment, "Cancelled from Convertigo."));
+    			graphClient.users().byUserId(organizer).events().byEventId(targetEventId).cancel().post(cancelBody);
+    			graphData.action = "cancel";
+    			graphData.cancelCommentApplied = !gm_isBlank(cancelComment);
+    		} else {
+    			graphClient.users().byUserId(organizer).events().byEventId(targetEventId).delete();
+    			graphData.action = "delete";
+    		}
+    		
+    		graphData.sendCancellation = shouldSendCancellation;
+    		return {
+    			tokenMode: tokenInfo.mode,
+    			data: graphData
+    		};
     	};
     	
-    	if (shouldSendCancellation) {
-    		var cancelBody = new Packages.com.microsoft.graph.users.item.events.item.cancel.CancelPostRequestBody();
-    		cancelBody.setComment(gm_defaultString(cancelComment, "Cancelled from Convertigo."));
-    		graphClient.users().byUserId(organizer).events().byEventId(targetEventId).cancel().post(cancelBody);
-    		data.action = "cancel";
+    	var runEws = function() {
+    		var ewsContext = gm_ewsBuildContext(organizer, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId);
+    		var ewsData = gm_ewsDeleteEvent(ewsContext, targetEventId, shouldSendCancellation);
+    		ewsData.providerUsed = "ews";
+    		if (!gm_isBlank(cancelComment) && shouldSendCancellation) {
+    			ewsData.cancelCommentApplied = false;
+    			ewsData.cancelCommentNote = "EWS DeleteItem does not support custom cancellation comments";
+    		}
+    		return {
+    			tokenMode: "ews",
+    			data: ewsData
+    		};
+    	};
+    	
+    	if (requestedProvider === "ews") {
+    		var ewsResult = runEws();
+    		tokenMode = ewsResult.tokenMode;
+    		data = ewsResult.data;
     	} else {
-    		graphClient.users().byUserId(organizer).events().byEventId(targetEventId).delete();
-    		data.action = "delete";
+    		try {
+    			var graphResult = runGraph();
+    			tokenMode = graphResult.tokenMode;
+    			data = graphResult.data;
+    		} catch (graphError) {
+    			if (requestedProvider === "auto" && ewsConfigured && gm_ewsShouldFallback(graphError)) {
+    				var fallbackResult = runEws();
+    				tokenMode = "ews_fallback";
+    				data = fallbackResult.data;
+    				data.graphFallbackReason = gm_safeString(graphError.message);
+    			} else {
+    				throw graphError;
+    			}
+    		}
     	}
     	
-    	data.sendCancellation = shouldSendCancellation;
+    	data.providerRequested = requestedProvider;
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
     } catch (e) {
     	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
@@ -70,6 +116,29 @@ comment: Cancels an existing Outlook/Teams meeting event.
   comment: true sends official cancellation, false deletes event without cancellation message.
   description: Whether cancellation should be sent
   value: true
+↓provider [variables.RequestableVariable-1772559104001]: 
+  comment: Backend provider selection graph|ews|auto.
+  description: Provider selection graph, ews or auto
+  value: graph
+↓ewsUrl [variables.RequestableVariable-1772559104002]: 
+  comment: EWS endpoint URL used when provider is ews or auto fallback.
+  description: EWS endpoint URL
+  value: ${Lib_Microsoft_Teams.ewsUrl}
+↓ewsUsername [variables.RequestableVariable-1772559104003]: 
+  comment: EWS technical username used for Exchange on-prem authentication.
+  description: EWS username
+  value: ${Lib_Microsoft_Teams.ewsUsername}
+↓ewsPassword [variables.RequestableVariable-1772559104004]: 
+  comment: EWS technical password used for Exchange on-prem authentication.
+  description: EWS password
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+  visibility: '-1'
+↓ewsImpersonateUserId [variables.RequestableVariable-1772559104005]: 
+  comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+  description: Optional EWS impersonation mailbox
 ↓accessToken [variables.RequestableVariable-1772535587103]: 
   comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
   description: Delegated Microsoft Graph access token

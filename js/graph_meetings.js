@@ -1065,3 +1065,642 @@ function gm_getOdataNextLink(collectionResponse) {
   }
   return "";
 }
+
+function gm_parseAttendeeDescriptors(attendeesJson, allowEmpty) {
+  if (gm_isBlank(attendeesJson)) {
+    if (allowEmpty) {
+      return [];
+    }
+    throw new java.lang.IllegalArgumentException("Missing required input: attendeesJson");
+  }
+
+  var parsed = JSON.parse(String(attendeesJson));
+  if (!(parsed instanceof Array)) {
+    throw new java.lang.IllegalArgumentException("attendeesJson must be a JSON array");
+  }
+
+  var values = [];
+  var i;
+  for (i = 0; i < parsed.length; i++) {
+    var item = parsed[i];
+    if (!item) {
+      continue;
+    }
+    var address = item.email || item.address;
+    if (gm_isBlank(address)) {
+      continue;
+    }
+    var typeValue = gm_defaultString(item.type, "required").toLowerCase();
+    if (typeValue !== "required" && typeValue !== "optional" && typeValue !== "resource") {
+      typeValue = "required";
+    }
+    values.push({
+      email: String(address),
+      name: gm_safeString(item.name),
+      type: typeValue
+    });
+  }
+
+  if (values.length === 0 && !allowEmpty) {
+    throw new java.lang.IllegalArgumentException("attendeesJson contains no usable attendee");
+  }
+  return values;
+}
+
+function gm_xmlEscape(value) {
+  var text = gm_safeString(value);
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function gm_isoToUtcIso(dateTimeIso, timeZone) {
+  var epochMillis = gm_parseIsoToEpochMillis(dateTimeIso, timeZone);
+  var instant = java.time.Instant.ofEpochMilli(new java.lang.Long(String(epochMillis)));
+  return String(java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant));
+}
+
+function gm_parseBooleanText(value) {
+  return String(gm_safeString(value)).toLowerCase() === "true";
+}
+
+function gm_normalizeProvider(providerName, defaultValue) {
+  var normalized = gm_defaultString(providerName, gm_defaultString(defaultValue, "graph")).toLowerCase();
+  if (normalized !== "graph" && normalized !== "ews" && normalized !== "auto") {
+    throw new java.lang.IllegalArgumentException("provider must be graph, ews or auto");
+  }
+  return normalized;
+}
+
+function gm_ewsNormalizeUrl(ewsUrl) {
+  var raw = gm_require("ewsUrl", ewsUrl).trim();
+  while (raw.length > 0 && raw.charAt(raw.length - 1) === "/") {
+    raw = raw.substring(0, raw.length - 1);
+  }
+  if (raw.toLowerCase().indexOf("/ews/exchange.asmx") >= 0) {
+    return raw;
+  }
+  return raw + "/EWS/Exchange.asmx";
+}
+
+function gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword) {
+  return !gm_isBlank(ewsUrl) && !gm_isBlank(ewsUsername) && !gm_isBlank(ewsPassword);
+}
+
+function gm_ewsShouldFallback(error) {
+  var message = "";
+  try {
+    message = gm_safeString(error.message);
+  } catch (ignoreErrorMessage) {
+    message = gm_safeString(error);
+  }
+  var lower = message.toLowerCase();
+  return lower.indexOf("mailboxnotenabledforrestapi") >= 0 ||
+    lower.indexOf("odata request is not supported") >= 0 ||
+    lower.indexOf("resource not found") >= 0 ||
+    lower.indexOf("erroraccessdenied") >= 0;
+}
+
+function gm_ewsBuildContext(organizerUserId, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId) {
+  return {
+    organizer: String(organizerUserId),
+    url: gm_ewsNormalizeUrl(ewsUrl),
+    username: gm_require("ewsUsername", ewsUsername),
+    password: gm_require("ewsPassword", ewsPassword),
+    impersonateUser: gm_isBlank(ewsImpersonateUserId) ? String(organizerUserId) : String(ewsImpersonateUserId)
+  };
+}
+
+function gm_ewsAuthHeader(username, password) {
+  var raw = String(username) + ":" + String(password);
+  var bytes = new java.lang.String(raw).getBytes("UTF-8");
+  var encoded = java.util.Base64.getEncoder().encodeToString(bytes);
+  return "Basic " + String(encoded);
+}
+
+function gm_ewsEnvelope(impersonateUser, bodyXml) {
+  var headerXml = "<t:RequestServerVersion Version=\"Exchange2016\"/>";
+  if (!gm_isBlank(impersonateUser)) {
+    headerXml += "<t:ExchangeImpersonation><t:ConnectingSID><t:PrimarySmtpAddress>" +
+      gm_xmlEscape(impersonateUser) +
+      "</t:PrimarySmtpAddress></t:ConnectingSID></t:ExchangeImpersonation>";
+  }
+  return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+    "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
+    "xmlns:t=\"http://schemas.microsoft.com/exchange/services/2006/types\" " +
+    "xmlns:m=\"http://schemas.microsoft.com/exchange/services/2006/messages\">" +
+    "<soap:Header>" + headerXml + "</soap:Header>" +
+    "<soap:Body>" + bodyXml + "</soap:Body>" +
+    "</soap:Envelope>";
+}
+
+function gm_ewsParseXml(xmlText) {
+  var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+  factory.setNamespaceAware(true);
+  var builder = factory.newDocumentBuilder();
+  var source = new org.xml.sax.InputSource(new java.io.StringReader(String(xmlText)));
+  return builder.parse(source);
+}
+
+function gm_ewsFirst(parentNode, localName) {
+  if (parentNode === null || parentNode === undefined) {
+    return null;
+  }
+  var nodes = parentNode.getElementsByTagNameNS("*", String(localName));
+  if (nodes === null || nodes.getLength() === 0) {
+    return null;
+  }
+  return nodes.item(0);
+}
+
+function gm_ewsText(parentNode, localName) {
+  if (parentNode === null || parentNode === undefined) {
+    return "";
+  }
+  if (localName === null || localName === undefined) {
+    return gm_safeString(parentNode.getTextContent());
+  }
+  var node = gm_ewsFirst(parentNode, localName);
+  return node === null ? "" : gm_safeString(node.getTextContent());
+}
+
+function gm_ewsAttr(node, attrName) {
+  if (node === null || node === undefined || !node.hasAttributes()) {
+    return "";
+  }
+  var attr = node.getAttributes().getNamedItem(String(attrName));
+  return attr === null ? "" : gm_safeString(attr.getNodeValue());
+}
+
+function gm_ewsAssertNoError(document, actionName, statusCode, rawResponse) {
+  var faultNode = gm_ewsFirst(document, "Fault");
+  if (faultNode !== null) {
+    var faultMessage = gm_ewsText(faultNode, "faultstring");
+    if (gm_isBlank(faultMessage)) {
+      faultMessage = gm_ewsText(faultNode, "Message");
+    }
+    if (gm_isBlank(faultMessage)) {
+      faultMessage = gm_ewsText(faultNode, null);
+    }
+    throw new java.lang.RuntimeException("EWS " + actionName + " SOAP fault (" + statusCode + "): " + faultMessage);
+  }
+
+  var responseCodes = document.getElementsByTagNameNS("*", "ResponseCode");
+  var i;
+  for (i = 0; i < responseCodes.getLength(); i++) {
+    var code = gm_safeString(responseCodes.item(i).getTextContent());
+    if (code !== "NoError") {
+      var messageNodes = document.getElementsByTagNameNS("*", "MessageText");
+      var message = messageNodes.getLength() > i ? gm_safeString(messageNodes.item(i).getTextContent()) : "";
+      if (gm_isBlank(message) && messageNodes.getLength() > 0) {
+        message = gm_safeString(messageNodes.item(0).getTextContent());
+      }
+      throw new java.lang.RuntimeException("EWS " + actionName + " failed: " + code + (gm_isBlank(message) ? "" : " - " + message));
+    }
+  }
+
+  if (statusCode >= 400 && responseCodes.getLength() === 0) {
+    throw new java.lang.RuntimeException("EWS " + actionName + " HTTP " + statusCode + ": " + gm_safeString(rawResponse));
+  }
+}
+
+function gm_ewsPost(context, actionName, bodyXml) {
+  var payload = gm_ewsEnvelope(context.impersonateUser, bodyXml);
+  var url = new java.net.URL(context.url);
+  var connection = url.openConnection();
+  connection.setRequestMethod("POST");
+  connection.setDoOutput(true);
+  connection.setRequestProperty("Content-Type", "text/xml; charset=utf-8");
+  connection.setRequestProperty("Accept", "text/xml");
+  connection.setRequestProperty("SOAPAction", "\"http://schemas.microsoft.com/exchange/services/2006/messages/" + String(actionName) + "\"");
+  connection.setRequestProperty("Authorization", gm_ewsAuthHeader(context.username, context.password));
+
+  var output = connection.getOutputStream();
+  try {
+    output.write(new java.lang.String(payload).getBytes("UTF-8"));
+  } finally {
+    output.close();
+  }
+
+  var statusCode = connection.getResponseCode();
+  var responseText = gm_readAll(statusCode >= 200 && statusCode < 300 ? connection.getInputStream() : connection.getErrorStream());
+  var document = gm_ewsParseXml(responseText);
+  gm_ewsAssertNoError(document, actionName, statusCode, responseText);
+  return {
+    statusCode: statusCode,
+    rawResponse: responseText,
+    document: document
+  };
+}
+
+function gm_ewsMailboxToObject(mailboxNode) {
+  if (mailboxNode === null || mailboxNode === undefined) {
+    return null;
+  }
+  return {
+    address: gm_ewsText(mailboxNode, "EmailAddress"),
+    name: gm_ewsText(mailboxNode, "Name")
+  };
+}
+
+function gm_ewsDateTimeToObject(value) {
+  var text = gm_safeString(value);
+  if (gm_isBlank(text)) {
+    return null;
+  }
+  var zone = "";
+  if (text.length > 0 && text.charAt(text.length - 1) === "Z") {
+    zone = "UTC";
+  }
+  return {
+    dateTime: text,
+    timeZone: zone
+  };
+}
+
+function gm_ewsAttendeesToArray(calendarItemNode) {
+  var attendees = [];
+  if (calendarItemNode === null || calendarItemNode === undefined) {
+    return attendees;
+  }
+
+  var collect = function(containerName, attendeeType) {
+    var container = gm_ewsFirst(calendarItemNode, containerName);
+    if (container === null) {
+      return;
+    }
+    var nodes = container.getElementsByTagNameNS("*", "Attendee");
+    var i;
+    for (i = 0; i < nodes.getLength(); i++) {
+      var attendee = nodes.item(i);
+      var mailbox = gm_ewsFirst(attendee, "Mailbox");
+      attendees.push({
+        type: attendeeType,
+        email: gm_ewsMailboxToObject(mailbox)
+      });
+    }
+  };
+
+  collect("RequiredAttendees", "required");
+  collect("OptionalAttendees", "optional");
+  return attendees;
+}
+
+function gm_ewsBuildLocationObject(locationText) {
+  return {
+    displayName: gm_safeString(locationText),
+    locationEmailAddress: "",
+    locationType: "default",
+    locationUri: "",
+    uniqueId: "",
+    uniqueIdType: "unknown"
+  };
+}
+
+function gm_ewsCalendarItemToObject(calendarItemNode, includeAttendees, includeBody) {
+  if (calendarItemNode === null || calendarItemNode === undefined) {
+    return null;
+  }
+
+  var itemIdNode = gm_ewsFirst(calendarItemNode, "ItemId");
+  var organizerNode = gm_ewsFirst(calendarItemNode, "Organizer");
+  var organizerMailboxNode = gm_ewsFirst(organizerNode, "Mailbox");
+  var bodyNode = gm_ewsFirst(calendarItemNode, "Body");
+
+  var eventObject = {
+    eventId: gm_ewsAttr(itemIdNode, "Id"),
+    iCalUId: gm_ewsText(calendarItemNode, "UID"),
+    transactionId: "",
+    seriesMasterId: gm_ewsText(calendarItemNode, "RecurrenceId"),
+    type: gm_ewsText(calendarItemNode, "CalendarItemType"),
+    subject: gm_ewsText(calendarItemNode, "Subject"),
+    webLink: gm_ewsText(calendarItemNode, "WebClientReadFormQueryString"),
+    isOnlineMeeting: gm_parseBooleanText(gm_ewsText(calendarItemNode, "IsOnlineMeeting")),
+    onlineMeetingProvider: "",
+    onlineMeetingUrl: gm_ewsText(calendarItemNode, "OnlineMeetingExternalLink"),
+    showAs: gm_ewsText(calendarItemNode, "LegacyFreeBusyStatus"),
+    isCancelled: gm_parseBooleanText(gm_ewsText(calendarItemNode, "IsCancelled")),
+    isOrganizer: gm_parseBooleanText(gm_ewsText(calendarItemNode, "IsOrganizer")),
+    isAllDay: gm_parseBooleanText(gm_ewsText(calendarItemNode, "IsAllDayEvent")),
+    createdDateTime: gm_ewsText(calendarItemNode, "DateTimeCreated"),
+    lastModifiedDateTime: gm_ewsText(calendarItemNode, "LastModifiedTime"),
+    start: gm_ewsDateTimeToObject(gm_ewsText(calendarItemNode, "Start")),
+    end: gm_ewsDateTimeToObject(gm_ewsText(calendarItemNode, "End")),
+    organizer: gm_ewsMailboxToObject(organizerMailboxNode),
+    location: gm_ewsBuildLocationObject(gm_ewsText(calendarItemNode, "Location")),
+    onlineMeeting: null
+  };
+
+  if (includeAttendees) {
+    eventObject.attendees = gm_ewsAttendeesToArray(calendarItemNode);
+  }
+  if (includeBody) {
+    eventObject.body = {
+      contentType: gm_ewsAttr(bodyNode, "BodyType"),
+      content: gm_ewsText(bodyNode, null)
+    };
+  }
+
+  return eventObject;
+}
+
+function gm_ewsSplitAttendees(attendeeDescriptors) {
+  var required = [];
+  var optional = [];
+  var i;
+  for (i = 0; i < attendeeDescriptors.length; i++) {
+    var attendee = attendeeDescriptors[i];
+    if (attendee.type === "optional") {
+      optional.push(attendee);
+    } else {
+      required.push(attendee);
+    }
+  }
+  return {
+    required: required,
+    optional: optional
+  };
+}
+
+function gm_ewsAttendeeMailboxXml(attendee) {
+  var mailboxXml = "<t:Mailbox>";
+  if (!gm_isBlank(attendee.name)) {
+    mailboxXml += "<t:Name>" + gm_xmlEscape(attendee.name) + "</t:Name>";
+  }
+  mailboxXml += "<t:EmailAddress>" + gm_xmlEscape(attendee.email) + "</t:EmailAddress>";
+  mailboxXml += "</t:Mailbox>";
+  return "<t:Attendee>" + mailboxXml + "</t:Attendee>";
+}
+
+function gm_ewsAttendeesBlockXml(blockName, attendees) {
+  if (attendees.length === 0) {
+    return "<t:" + blockName + "/>";
+  }
+  var xml = "<t:" + blockName + ">";
+  var i;
+  for (i = 0; i < attendees.length; i++) {
+    xml += gm_ewsAttendeeMailboxXml(attendees[i]);
+  }
+  xml += "</t:" + blockName + ">";
+  return xml;
+}
+
+function gm_ewsGetCalendarItem(context, eventId) {
+  var bodyXml =
+    "<m:GetItem>" +
+    "<m:ItemShape><t:BaseShape>AllProperties</t:BaseShape></m:ItemShape>" +
+    "<m:ItemIds><t:ItemId Id=\"" + gm_xmlEscape(eventId) + "\"/></m:ItemIds>" +
+    "</m:GetItem>";
+  var response = gm_ewsPost(context, "GetItem", bodyXml);
+  var calendarItemNode = gm_ewsFirst(response.document, "CalendarItem");
+  if (calendarItemNode === null) {
+    throw new java.lang.RuntimeException("EWS GetItem succeeded but CalendarItem was not returned");
+  }
+  return calendarItemNode;
+}
+
+function gm_ewsCreateEvent(context, subject, startIso, endIso, timeZone, attendeesJson, bodyHtml, isOnlineMeeting) {
+  var attendeeDescriptors = gm_parseAttendeeDescriptors(attendeesJson, false);
+  var attendeeGroups = gm_ewsSplitAttendees(attendeeDescriptors);
+  var sendMeetingInvitations = attendeeDescriptors.length === 0 ? "SendToNone" : "SendToAllAndSaveCopy";
+
+  var itemXml =
+    "<t:CalendarItem>" +
+    "<t:Subject>" + gm_xmlEscape(subject) + "</t:Subject>" +
+    "<t:Start>" + gm_xmlEscape(gm_isoToUtcIso(startIso, timeZone)) + "</t:Start>" +
+    "<t:End>" + gm_xmlEscape(gm_isoToUtcIso(endIso, timeZone)) + "</t:End>" +
+    gm_ewsAttendeesBlockXml("RequiredAttendees", attendeeGroups.required) +
+    gm_ewsAttendeesBlockXml("OptionalAttendees", attendeeGroups.optional) +
+    (gm_isBlank(bodyHtml) ? "" : "<t:Body BodyType=\"HTML\">" + gm_xmlEscape(bodyHtml) + "</t:Body>") +
+    "</t:CalendarItem>";
+
+  var bodyXml =
+    "<m:CreateItem SendMeetingInvitations=\"" + sendMeetingInvitations + "\">" +
+    "<m:SavedItemFolderId>" +
+    "<t:DistinguishedFolderId Id=\"calendar\">" +
+    "<t:Mailbox><t:EmailAddress>" + gm_xmlEscape(context.organizer) + "</t:EmailAddress></t:Mailbox>" +
+    "</t:DistinguishedFolderId>" +
+    "</m:SavedItemFolderId>" +
+    "<m:Items>" + itemXml + "</m:Items>" +
+    "</m:CreateItem>";
+
+  var createResponse = gm_ewsPost(context, "CreateItem", bodyXml);
+  var createdIdNode = gm_ewsFirst(createResponse.document, "ItemId");
+  var createdId = gm_ewsAttr(createdIdNode, "Id");
+  if (gm_isBlank(createdId)) {
+    throw new java.lang.RuntimeException("EWS CreateItem succeeded but ItemId was not returned");
+  }
+
+  var createdEvent = gm_ewsCalendarItemToObject(gm_ewsGetCalendarItem(context, createdId), false, false);
+  var data = {
+    eventId: gm_safeString(createdEvent.eventId),
+    iCalUId: gm_safeString(createdEvent.iCalUId),
+    webLink: gm_safeString(createdEvent.webLink),
+    onlineMeetingUrl: gm_safeString(createdEvent.onlineMeetingUrl),
+    start: createdEvent.start,
+    end: createdEvent.end
+  };
+
+  if (gm_toBoolean(isOnlineMeeting, true)) {
+    data.onlineMeetingProvisioning = "unsupported_by_ews";
+  }
+  return data;
+}
+
+function gm_ewsMapSendUpdatesMode(sendUpdates) {
+  var normalized = gm_normalizeSendUpdatesMode(sendUpdates, "all");
+  if (normalized === "none") {
+    return "SendToNone";
+  }
+  if (normalized === "externalOnly") {
+    return "SendOnlyToChanged";
+  }
+  return "SendToAllAndSaveCopy";
+}
+
+function gm_ewsUpdateEvent(context, eventId, subject, startIso, endIso, timeZone, attendeesJson, bodyHtml, sendUpdates) {
+  var currentItemNode = gm_ewsGetCalendarItem(context, eventId);
+  var itemIdNode = gm_ewsFirst(currentItemNode, "ItemId");
+  var itemId = gm_ewsAttr(itemIdNode, "Id");
+  var changeKey = gm_ewsAttr(itemIdNode, "ChangeKey");
+
+  var updatesXml = "";
+  var hasPatchPayload = false;
+
+  if (!gm_isBlank(subject)) {
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"item:Subject\"/>" +
+      "<t:CalendarItem><t:Subject>" + gm_xmlEscape(subject) + "</t:Subject></t:CalendarItem>" +
+      "</t:SetItemField>";
+    hasPatchPayload = true;
+  }
+
+  if (!gm_isBlank(startIso) || !gm_isBlank(endIso)) {
+    var updatedStart = gm_require("startIso", startIso);
+    var updatedEnd = gm_require("endIso", endIso);
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"calendar:Start\"/>" +
+      "<t:CalendarItem><t:Start>" + gm_xmlEscape(gm_isoToUtcIso(updatedStart, timeZone)) + "</t:Start></t:CalendarItem>" +
+      "</t:SetItemField>";
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"calendar:End\"/>" +
+      "<t:CalendarItem><t:End>" + gm_xmlEscape(gm_isoToUtcIso(updatedEnd, timeZone)) + "</t:End></t:CalendarItem>" +
+      "</t:SetItemField>";
+    hasPatchPayload = true;
+  }
+
+  if (!gm_isBlank(attendeesJson)) {
+    var attendeeGroups = gm_ewsSplitAttendees(gm_parseAttendeeDescriptors(attendeesJson, false));
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"calendar:RequiredAttendees\"/>" +
+      "<t:CalendarItem>" + gm_ewsAttendeesBlockXml("RequiredAttendees", attendeeGroups.required) + "</t:CalendarItem>" +
+      "</t:SetItemField>";
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"calendar:OptionalAttendees\"/>" +
+      "<t:CalendarItem>" + gm_ewsAttendeesBlockXml("OptionalAttendees", attendeeGroups.optional) + "</t:CalendarItem>" +
+      "</t:SetItemField>";
+    hasPatchPayload = true;
+  }
+
+  if (!gm_isBlank(bodyHtml)) {
+    updatesXml +=
+      "<t:SetItemField>" +
+      "<t:FieldURI FieldURI=\"item:Body\"/>" +
+      "<t:CalendarItem><t:Body BodyType=\"HTML\">" + gm_xmlEscape(bodyHtml) + "</t:Body></t:CalendarItem>" +
+      "</t:SetItemField>";
+    hasPatchPayload = true;
+  }
+
+  var sendMode = gm_ewsMapSendUpdatesMode(sendUpdates);
+  if (hasPatchPayload) {
+    var bodyXml =
+      "<m:UpdateItem ConflictResolution=\"AlwaysOverwrite\" MessageDisposition=\"SaveOnly\" " +
+      "SendMeetingInvitationsOrCancellations=\"" + sendMode + "\">" +
+      "<m:ItemChanges><t:ItemChange>" +
+      "<t:ItemId Id=\"" + gm_xmlEscape(itemId) + "\" ChangeKey=\"" + gm_xmlEscape(changeKey) + "\"/>" +
+      "<t:Updates>" + updatesXml + "</t:Updates>" +
+      "</t:ItemChange></m:ItemChanges>" +
+      "</m:UpdateItem>";
+    gm_ewsPost(context, "UpdateItem", bodyXml);
+  }
+
+  var updatedEvent = gm_ewsCalendarItemToObject(gm_ewsGetCalendarItem(context, eventId), false, false);
+  return {
+    eventId: gm_safeString(updatedEvent.eventId),
+    iCalUId: gm_safeString(updatedEvent.iCalUId),
+    webLink: gm_safeString(updatedEvent.webLink),
+    onlineMeetingUrl: gm_safeString(updatedEvent.onlineMeetingUrl),
+    start: updatedEvent.start,
+    end: updatedEvent.end,
+    sendUpdatesRequested: gm_defaultString(sendUpdates, "all"),
+    sendUpdatesApplied: hasPatchPayload ? sendMode : "",
+    payloadUpdated: hasPatchPayload
+  };
+}
+
+function gm_ewsDeleteEvent(context, eventId, sendCancellation) {
+  var shouldSendCancellation = gm_toBoolean(sendCancellation, true);
+  var sendMode = shouldSendCancellation ? "SendToAllAndSaveCopy" : "SendToNone";
+  var bodyXml =
+    "<m:DeleteItem DeleteType=\"HardDelete\" SendMeetingCancellations=\"" + sendMode + "\" AffectedTaskOccurrences=\"AllOccurrences\">" +
+    "<m:ItemIds><t:ItemId Id=\"" + gm_xmlEscape(eventId) + "\"/></m:ItemIds>" +
+    "</m:DeleteItem>";
+  gm_ewsPost(context, "DeleteItem", bodyXml);
+  return {
+    eventId: eventId,
+    action: shouldSendCancellation ? "cancel" : "delete",
+    sendCancellation: shouldSendCancellation
+  };
+}
+
+function gm_ewsListEvents(context, windowStartIso, windowEndIso, top, skip, includeAttendees, includeBody, includeCancelled, orderBy, filter) {
+  var maxEntries = top < 1 ? 1 : top;
+  if (maxEntries > 200) {
+    maxEntries = 200;
+  }
+  var pageOffset = skip < 0 ? 0 : skip;
+
+  var hasWindow = !gm_isBlank(windowStartIso) || !gm_isBlank(windowEndIso);
+  var viewXml = "";
+  if (hasWindow) {
+    var startDate = gm_require("windowStartIso", windowStartIso);
+    var endDate = gm_require("windowEndIso", windowEndIso);
+    viewXml = "<m:CalendarView StartDate=\"" + gm_xmlEscape(gm_isoToUtcIso(startDate, "UTC")) + "\" EndDate=\"" +
+      gm_xmlEscape(gm_isoToUtcIso(endDate, "UTC")) + "\" MaxEntriesReturned=\"" + String(maxEntries + pageOffset) + "\"/>";
+  } else {
+    viewXml = "<m:IndexedPageItemView MaxEntriesReturned=\"" + String(maxEntries) + "\" Offset=\"" + String(pageOffset) + "\" BasePoint=\"Beginning\"/>";
+  }
+
+  var bodyXml =
+    "<m:FindItem Traversal=\"Shallow\">" +
+    "<m:ItemShape><t:BaseShape>AllProperties</t:BaseShape></m:ItemShape>" +
+    viewXml +
+    "<m:ParentFolderIds>" +
+    "<t:DistinguishedFolderId Id=\"calendar\">" +
+    "<t:Mailbox><t:EmailAddress>" + gm_xmlEscape(context.organizer) + "</t:EmailAddress></t:Mailbox>" +
+    "</t:DistinguishedFolderId>" +
+    "</m:ParentFolderIds>" +
+    "</m:FindItem>";
+
+  var response = gm_ewsPost(context, "FindItem", bodyXml);
+  var itemNodes = response.document.getElementsByTagNameNS("*", "CalendarItem");
+  var values = [];
+  var i;
+  for (i = 0; i < itemNodes.getLength(); i++) {
+    var mapped = gm_ewsCalendarItemToObject(itemNodes.item(i), includeAttendees, includeBody);
+    if (mapped === null) {
+      continue;
+    }
+    if (!includeCancelled && mapped.isCancelled === true) {
+      continue;
+    }
+    values.push(mapped);
+  }
+
+  var filteredValues = values;
+  if (hasWindow && pageOffset > 0) {
+    filteredValues = values.slice(pageOffset);
+  }
+  if (filteredValues.length > maxEntries) {
+    filteredValues = filteredValues.slice(0, maxEntries);
+  }
+
+  var rootFolder = gm_ewsFirst(response.document, "RootFolder");
+  var includesLast = String(gm_ewsAttr(rootFolder, "IncludesLastItemInRange")).toLowerCase() === "true";
+  var nextOffset = gm_ewsAttr(rootFolder, "IndexedPagingOffset");
+  var nextLink = "";
+  if (!includesLast) {
+    if (gm_isBlank(nextOffset)) {
+      nextOffset = String(pageOffset + filteredValues.length);
+    }
+    nextLink = "ews-offset:" + nextOffset;
+  }
+
+  return {
+    organizerUserId: context.organizer,
+    viewMode: hasWindow ? "calendarView" : "events",
+    count: filteredValues.length,
+    nextLink: nextLink,
+    query: {
+      top: maxEntries,
+      skip: pageOffset,
+      orderBy: gm_safeString(orderBy),
+      filter: gm_safeString(filter),
+      windowStartIso: gm_safeString(windowStartIso),
+      windowEndIso: gm_safeString(windowEndIso),
+      includeAttendees: includeAttendees,
+      includeBody: includeBody,
+      includeCancelled: includeCancelled,
+      providerNotes: gm_isBlank(filter) && gm_isBlank(orderBy) ? "" : "filter/orderBy are best-effort in EWS mode"
+    },
+    items: filteredValues
+  };
+}

@@ -21,65 +21,131 @@ comment: Retrieves a Teams/Outlook meeting event with attendees, slot details an
     	var shouldFailIfMetadataMissing = gm_toBoolean(failIfMetadataMissing, false);
     	var shouldFailIfExtensionsUnsupported = gm_toBoolean(failIfExtensionsUnsupported, false);
     	
-    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
-    	tokenMode = tokenInfo.mode;
-    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
-    	var eventBuilder = graphClient.users().byUserId(organizer).events().byEventId(targetEventId);
+    	var requestedProvider = gm_normalizeProvider(provider, "graph");
+    	var ewsConfigured = gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword);
+    	var data = null;
     	
-    	var event = eventBuilder.get();
-    	var data = {
-    		eventId: gm_safeString(event.getId()),
-    		iCalUId: gm_safeString(event.getICalUId()),
-    		subject: gm_safeString(event.getSubject()),
-    		webLink: gm_safeString(event.getWebLink()),
-    		isOnlineMeeting: event.getIsOnlineMeeting(),
-    		onlineMeetingProvider: gm_enumValue(event.getOnlineMeetingProvider()),
-    		onlineMeetingUrl: gm_safeString(event.getOnlineMeetingUrl()),
-    		showAs: gm_enumValue(event.getShowAs()),
-    		isCancelled: event.getIsCancelled(),
-    		start: gm_dttzToObject(event.getStart()),
-    		end: gm_dttzToObject(event.getEnd()),
-    		organizer: gm_recipientToObject(event.getOrganizer()),
-    		location: gm_locationToObject(event.getLocation()),
-    		onlineMeeting: gm_onlineMeetingInfoToObject(event.getOnlineMeeting())
+    	var runGraph = function() {
+    		var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    		var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    		var eventBuilder = graphClient.users().byUserId(organizer).events().byEventId(targetEventId);
+    		
+    		var event = eventBuilder.get();
+    		var graphData = {
+    			eventId: gm_safeString(event.getId()),
+    			iCalUId: gm_safeString(event.getICalUId()),
+    			subject: gm_safeString(event.getSubject()),
+    			webLink: gm_safeString(event.getWebLink()),
+    			isOnlineMeeting: event.getIsOnlineMeeting(),
+    			onlineMeetingProvider: gm_enumValue(event.getOnlineMeetingProvider()),
+    			onlineMeetingUrl: gm_safeString(event.getOnlineMeetingUrl()),
+    			showAs: gm_enumValue(event.getShowAs()),
+    			isCancelled: event.getIsCancelled(),
+    			start: gm_dttzToObject(event.getStart()),
+    			end: gm_dttzToObject(event.getEnd()),
+    			organizer: gm_recipientToObject(event.getOrganizer()),
+    			location: gm_locationToObject(event.getLocation()),
+    			onlineMeeting: gm_onlineMeetingInfoToObject(event.getOnlineMeeting()),
+    			providerUsed: "graph"
+    		};
+    		
+    		if (shouldIncludeAttendees) {
+    			graphData.attendees = gm_attendeesToArray(event.getAttendees());
+    		}
+    		
+    		if (shouldIncludeBody) {
+    			graphData.body = gm_itemBodyToObject(event.getBody());
+    		}
+    		
+    		if (!gm_isBlank(metadataExtensionId)) {
+    			try {
+    				var metadataExtension = eventBuilder.extensions().byExtensionId(String(metadataExtensionId)).get();
+    				graphData.metadataExtension = gm_extensionToObject(metadataExtension);
+    			} catch (metadataError) {
+    				if (shouldFailIfMetadataMissing) {
+    					throw metadataError;
+    				}
+    				graphData.metadataExtension = null;
+    				graphData.metadataExtensionMissing = true;
+    			}
+    		}
+    		
+    		if (shouldIncludeExtensions) {
+    			try {
+    				var extensionsResponse = eventBuilder.extensions().get();
+    				var extensionValues = extensionsResponse === null ? null : extensionsResponse.getValue();
+    				graphData.extensions = gm_extensionsToArray(extensionValues);
+    			} catch (extensionsError) {
+    				if (shouldFailIfExtensionsUnsupported) {
+    					throw extensionsError;
+    				}
+    				graphData.extensions = [];
+    				graphData.extensionsUnsupported = true;
+    				graphData.extensionsUnsupportedError = gm_safeString(extensionsError.message);
+    			}
+    		}
+    		
+    		return {
+    			tokenMode: tokenInfo.mode,
+    			data: graphData
+    		};
     	};
     	
-    	if (shouldIncludeAttendees) {
-    		data.attendees = gm_attendeesToArray(event.getAttendees());
-    	}
-    	
-    	if (shouldIncludeBody) {
-    		data.body = gm_itemBodyToObject(event.getBody());
-    	}
-    	
-    	if (!gm_isBlank(metadataExtensionId)) {
-    		try {
-    			var metadataExtension = eventBuilder.extensions().byExtensionId(String(metadataExtensionId)).get();
-    			data.metadataExtension = gm_extensionToObject(metadataExtension);
-    		} catch (metadataError) {
+    	var runEws = function() {
+    		var ewsContext = gm_ewsBuildContext(organizer, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId);
+    		var ewsData = gm_ewsCalendarItemToObject(
+    			gm_ewsGetCalendarItem(ewsContext, targetEventId),
+    			shouldIncludeAttendees,
+    			shouldIncludeBody
+    		);
+    		ewsData.providerUsed = "ews";
+    		
+    		if (!gm_isBlank(metadataExtensionId)) {
     			if (shouldFailIfMetadataMissing) {
-    				throw metadataError;
+    				throw new java.lang.RuntimeException("metadataExtensionId is not supported in EWS mode");
     			}
-    			data.metadataExtension = null;
-    			data.metadataExtensionMissing = true;
+    			ewsData.metadataExtension = null;
+    			ewsData.metadataExtensionMissing = true;
+    			ewsData.metadataExtensionUnsupported = true;
     		}
-    	}
-    	
-    	if (shouldIncludeExtensions) {
-    		try {
-    			var extensionsResponse = eventBuilder.extensions().get();
-    			var extensionValues = extensionsResponse === null ? null : extensionsResponse.getValue();
-    			data.extensions = gm_extensionsToArray(extensionValues);
-    		} catch (extensionsError) {
+    		
+    		if (shouldIncludeExtensions) {
     			if (shouldFailIfExtensionsUnsupported) {
-    				throw extensionsError;
+    				throw new java.lang.RuntimeException("extensions listing is not supported in EWS mode");
     			}
-    			data.extensions = [];
-    			data.extensionsUnsupported = true;
-    			data.extensionsUnsupportedError = gm_safeString(extensionsError.message);
+    			ewsData.extensions = [];
+    			ewsData.extensionsUnsupported = true;
+    			ewsData.extensionsUnsupportedError = "Open extensions are not supported in EWS mode";
+    		}
+    		
+    		return {
+    			tokenMode: "ews",
+    			data: ewsData
+    		};
+    	};
+    	
+    	if (requestedProvider === "ews") {
+    		var ewsResult = runEws();
+    		tokenMode = ewsResult.tokenMode;
+    		data = ewsResult.data;
+    	} else {
+    		try {
+    			var graphResult = runGraph();
+    			tokenMode = graphResult.tokenMode;
+    			data = graphResult.data;
+    		} catch (graphError) {
+    			if (requestedProvider === "auto" && ewsConfigured && gm_ewsShouldFallback(graphError)) {
+    				var fallbackResult = runEws();
+    				tokenMode = "ews_fallback";
+    				data = fallbackResult.data;
+    				data.graphFallbackReason = gm_safeString(graphError.message);
+    			} else {
+    				throw graphError;
+    			}
     		}
     	}
     	
+    	data.providerRequested = requestedProvider;
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
     } catch (e) {
     	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
@@ -129,6 +195,29 @@ comment: Retrieves a Teams/Outlook meeting event with attendees, slot details an
   comment: true returns error when listing extensions is not supported for the targeted event.
   description: Fail when extension listing is unsupported
   value: false
+↓provider [variables.RequestableVariable-1772559102001]: 
+  comment: Backend provider selection graph|ews|auto.
+  description: Provider selection graph, ews or auto
+  value: graph
+↓ewsUrl [variables.RequestableVariable-1772559102002]: 
+  comment: EWS endpoint URL used when provider is ews or auto fallback.
+  description: EWS endpoint URL
+  value: ${Lib_Microsoft_Teams.ewsUrl}
+↓ewsUsername [variables.RequestableVariable-1772559102003]: 
+  comment: EWS technical username used for Exchange on-prem authentication.
+  description: EWS username
+  value: ${Lib_Microsoft_Teams.ewsUsername}
+↓ewsPassword [variables.RequestableVariable-1772559102004]: 
+  comment: EWS technical password used for Exchange on-prem authentication.
+  description: EWS password
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+  visibility: '-1'
+↓ewsImpersonateUserId [variables.RequestableVariable-1772559102005]: 
+  comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+  description: Optional EWS impersonation mailbox
 ↓accessToken [variables.RequestableVariable-1772536002011]: 
   comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
   description: Delegated Microsoft Graph access token

@@ -17,62 +17,123 @@ comment: Updates an existing Outlook/Teams meeting event.
     	var targetEventId = gm_require("eventId", eventId);
     	var meetingTimeZone = gm_defaultString(timeZone, "Europe/Paris");
     	
-    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
-    	tokenMode = tokenInfo.mode;
-    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    	var requestedProvider = gm_normalizeProvider(provider, "graph");
+    	var ewsConfigured = gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword);
+    	var data = null;
     	
-        	var patchEvent = gm_newGraphObject("com.microsoft.graph.models.Event");
-    	var hasPatchPayload = false;
-    	
-    	if (!gm_isBlank(subject)) {
-    		patchEvent.setSubject(String(subject));
-    		hasPatchPayload = true;
-    	}
-    	
-    	if (!gm_isBlank(startIso) || !gm_isBlank(endIso)) {
-    		patchEvent.setStart(gm_newDateTimeTimeZone(gm_require("startIso", startIso), meetingTimeZone));
-    		patchEvent.setEnd(gm_newDateTimeTimeZone(gm_require("endIso", endIso), meetingTimeZone));
-    		hasPatchPayload = true;
-    	}
-    	
-    	if (!gm_isBlank(attendeesJson)) {
-    		patchEvent.setAttendees(gm_parseAttendees(attendeesJson));
-    		hasPatchPayload = true;
-    	}
-    	
-    	if (!gm_isBlank(bodyHtml)) {
-    		patchEvent.setBody(gm_newBodyHtml(bodyHtml));
-    		hasPatchPayload = true;
-    	}
-    	
-    	var updated = null;
-    	var appliedSendUpdates = "";
-    	if (hasPatchPayload) {
-    		var patchResult = gm_patchEventWithSendUpdates(graphClient, organizer, targetEventId, patchEvent, sendUpdates);
-    		updated = patchResult.event;
-    		appliedSendUpdates = patchResult.sendUpdatesApplied;
-    	} else {
-    		updated = graphClient.users().byUserId(organizer).events().byEventId(targetEventId).get();
-    	}
-    	
-    	var data = {
-    		eventId: gm_safeString(updated.getId()),
-    		iCalUId: gm_safeString(updated.getICalUId()),
-    		webLink: gm_safeString(updated.getWebLink()),
-    		onlineMeetingUrl: gm_safeString(updated.getOnlineMeetingUrl()),
-    		start: gm_dttzToObject(updated.getStart()),
-    		end: gm_dttzToObject(updated.getEnd()),
-    		sendUpdatesRequested: gm_defaultString(sendUpdates, "all"),
-    		sendUpdatesApplied: appliedSendUpdates,
-    		payloadUpdated: hasPatchPayload
+    	var runGraph = function() {
+    		var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    		var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    		
+        		var patchEvent = gm_newGraphObject("com.microsoft.graph.models.Event");
+    		var hasPatchPayload = false;
+    		
+    		if (!gm_isBlank(subject)) {
+    			patchEvent.setSubject(String(subject));
+    			hasPatchPayload = true;
+    		}
+    		
+    		if (!gm_isBlank(startIso) || !gm_isBlank(endIso)) {
+    			patchEvent.setStart(gm_newDateTimeTimeZone(gm_require("startIso", startIso), meetingTimeZone));
+    			patchEvent.setEnd(gm_newDateTimeTimeZone(gm_require("endIso", endIso), meetingTimeZone));
+    			hasPatchPayload = true;
+    		}
+    		
+    		if (!gm_isBlank(attendeesJson)) {
+    			patchEvent.setAttendees(gm_parseAttendees(attendeesJson));
+    			hasPatchPayload = true;
+    		}
+    		
+    		if (!gm_isBlank(bodyHtml)) {
+    			patchEvent.setBody(gm_newBodyHtml(bodyHtml));
+    			hasPatchPayload = true;
+    		}
+    		
+    		var updated = null;
+    		var appliedSendUpdates = "";
+    		if (hasPatchPayload) {
+    			var patchResult = gm_patchEventWithSendUpdates(graphClient, organizer, targetEventId, patchEvent, sendUpdates);
+    			updated = patchResult.event;
+    			appliedSendUpdates = patchResult.sendUpdatesApplied;
+    		} else {
+    			updated = graphClient.users().byUserId(organizer).events().byEventId(targetEventId).get();
+    		}
+    		
+    		var graphData = {
+    			eventId: gm_safeString(updated.getId()),
+    			iCalUId: gm_safeString(updated.getICalUId()),
+    			webLink: gm_safeString(updated.getWebLink()),
+    			onlineMeetingUrl: gm_safeString(updated.getOnlineMeetingUrl()),
+    			start: gm_dttzToObject(updated.getStart()),
+    			end: gm_dttzToObject(updated.getEnd()),
+    			sendUpdatesRequested: gm_defaultString(sendUpdates, "all"),
+    			sendUpdatesApplied: appliedSendUpdates,
+    			payloadUpdated: hasPatchPayload,
+    			providerUsed: "graph"
+    		};
+    		
+    		if (!gm_isBlank(customMetadataJson)) {
+    			var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
+    			var extensionMergeMode = gm_defaultString(mergeMode, "merge");
+    			graphData.metadata = gm_upsertOpenExtension(graphClient, organizer, targetEventId, extensionName, customMetadataJson, extensionMergeMode);
+    		}
+    		
+    		return {
+    			tokenMode: tokenInfo.mode,
+    			data: graphData
+    		};
     	};
     	
-    	if (!gm_isBlank(customMetadataJson)) {
-    		var extensionName = gm_defaultString(metadataExtensionId, "com.convertigo.meeting");
-    		var extensionMergeMode = gm_defaultString(mergeMode, "merge");
-    		data.metadata = gm_upsertOpenExtension(graphClient, organizer, targetEventId, extensionName, customMetadataJson, extensionMergeMode);
+    	var runEws = function() {
+    		var ewsContext = gm_ewsBuildContext(organizer, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId);
+    		var ewsData = gm_ewsUpdateEvent(
+    			ewsContext,
+    			targetEventId,
+    			subject,
+    			startIso,
+    			endIso,
+    			meetingTimeZone,
+    			attendeesJson,
+    			bodyHtml,
+    			sendUpdates
+    		);
+    		ewsData.providerUsed = "ews";
+    		
+    		if (!gm_isBlank(customMetadataJson)) {
+    			ewsData.metadata = {
+    				action: "unsupported",
+    				reason: "Open extensions are not available in EWS mode"
+    			};
+    		}
+    		
+    		return {
+    			tokenMode: "ews",
+    			data: ewsData
+    		};
+    	};
+    	
+    	if (requestedProvider === "ews") {
+    		var ewsResult = runEws();
+    		tokenMode = ewsResult.tokenMode;
+    		data = ewsResult.data;
+    	} else {
+    		try {
+    			var graphResult = runGraph();
+    			tokenMode = graphResult.tokenMode;
+    			data = graphResult.data;
+    		} catch (graphError) {
+    			if (requestedProvider === "auto" && ewsConfigured && gm_ewsShouldFallback(graphError)) {
+    				var fallbackResult = runEws();
+    				tokenMode = "ews_fallback";
+    				data = fallbackResult.data;
+    				data.graphFallbackReason = gm_safeString(graphError.message);
+    			} else {
+    				throw graphError;
+    			}
+    		}
     	}
     	
+    	data.providerRequested = requestedProvider;
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
     } catch (e) {
     	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
@@ -133,6 +194,29 @@ comment: Updates an existing Outlook/Teams meeting event.
   comment: Metadata merge mode when extension exists (merge or replace).
   description: Metadata merge mode
   value: merge
+↓provider [variables.RequestableVariable-1772559103001]: 
+  comment: Backend provider selection graph|ews|auto.
+  description: Provider selection graph, ews or auto
+  value: graph
+↓ewsUrl [variables.RequestableVariable-1772559103002]: 
+  comment: EWS endpoint URL used when provider is ews or auto fallback.
+  description: EWS endpoint URL
+  value: ${Lib_Microsoft_Teams.ewsUrl}
+↓ewsUsername [variables.RequestableVariable-1772559103003]: 
+  comment: EWS technical username used for Exchange on-prem authentication.
+  description: EWS username
+  value: ${Lib_Microsoft_Teams.ewsUsername}
+↓ewsPassword [variables.RequestableVariable-1772559103004]: 
+  comment: EWS technical password used for Exchange on-prem authentication.
+  description: EWS password
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+  visibility: '-1'
+↓ewsImpersonateUserId [variables.RequestableVariable-1772559103005]: 
+  comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+  description: Optional EWS impersonation mailbox
 ↓accessToken [variables.RequestableVariable-1772535594882]: 
   comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
   description: Delegated Microsoft Graph access token

@@ -3,7 +3,7 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
 ↓inputVars [steps.InputVariablesStep-1772553001001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteListMeetingEvents [steps.SimpleStep-1772553001002]: 
-  comment: Calls Microsoft Graph to list events from events or calendarView endpoints.
+  comment: Calls Microsoft Graph or EWS to list events from events or calendarView endpoints.
   expression: |
     'include("js/graph_meetings.js");
     
@@ -17,6 +17,9 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
     	var shouldIncludeAttendees = gm_toBoolean(includeAttendees, false);
     	var shouldIncludeBody = gm_toBoolean(includeBody, false);
     	var shouldIncludeCancelled = gm_toBoolean(includeCancelled, true);
+    	var requestedProvider = gm_normalizeProvider(provider, "graph");
+    	var ewsConfigured = gm_ewsHasCredentials(ewsUrl, ewsUsername, ewsPassword);
+    	var data = null;
     	
     	var pageTop = gm_parseInteger("top", top, 50);
     	if (pageTop < 1) {
@@ -39,24 +42,6 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
     		windowEnd = gm_require("windowEndIso", windowEndIso);
     	}
     	
-    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
-    	tokenMode = tokenInfo.mode;
-    	var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
-    	
-    	var baseUrl = gm_getGraphBaseUrl(graphClient) + "/users/" + gm_urlEncode(organizer) + (hasWindow ? "/calendarView" : "/events");
-    	var requestUrl = baseUrl;
-    	if (hasWindow) {
-    		requestUrl = gm_appendQueryParam(requestUrl, "startDateTime", windowStart);
-    		requestUrl = gm_appendQueryParam(requestUrl, "endDateTime", windowEnd);
-    	}
-    	requestUrl = gm_appendQueryParam(requestUrl, "$top", String(pageTop));
-    	if (pageSkip > 0) {
-    		requestUrl = gm_appendQueryParam(requestUrl, "$skip", String(pageSkip));
-    	}
-    	if (!gm_isBlank(orderBy)) {
-    		requestUrl = gm_appendQueryParam(requestUrl, "$orderby", String(orderBy));
-    	}
-    	
     	var normalizedFilter = gm_safeString(filter);
     	if (!shouldIncludeCancelled) {
     		var cancellationFilter = "isCancelled ne true";
@@ -66,33 +51,102 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
     			normalizedFilter = "(" + normalizedFilter + ") and " + cancellationFilter;
     		}
     	}
-    	if (!gm_isBlank(normalizedFilter)) {
-    		requestUrl = gm_appendQueryParam(requestUrl, "$filter", normalizedFilter);
+    	
+    	var runGraph = function() {
+    		var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    		var graphClient = gm_newGraphClientWithBearer(tokenInfo.token);
+    		
+    		var baseUrl = gm_getGraphBaseUrl(graphClient) + "/users/" + gm_urlEncode(organizer) + (hasWindow ? "/calendarView" : "/events");
+    		var requestUrl = baseUrl;
+    		if (hasWindow) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "startDateTime", windowStart);
+    			requestUrl = gm_appendQueryParam(requestUrl, "endDateTime", windowEnd);
+    		}
+    		requestUrl = gm_appendQueryParam(requestUrl, "$top", String(pageTop));
+    		if (pageSkip > 0) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "$skip", String(pageSkip));
+    		}
+    		if (!gm_isBlank(orderBy)) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "$orderby", String(orderBy));
+    		}
+    		if (!gm_isBlank(normalizedFilter)) {
+    			requestUrl = gm_appendQueryParam(requestUrl, "$filter", normalizedFilter);
+    		}
+    		
+    		var eventsResponse = hasWindow
+    			? graphClient.users().byUserId(organizer).calendarView().withUrl(requestUrl).get()
+    			: graphClient.users().byUserId(organizer).events().withUrl(requestUrl).get();
+    		
+    		var items = gm_eventsToArray(eventsResponse.getValue(), shouldIncludeAttendees, shouldIncludeBody);
+    		var graphData = {
+    			organizerUserId: organizer,
+    			viewMode: hasWindow ? "calendarView" : "events",
+    			count: items.length,
+    			nextLink: gm_getOdataNextLink(eventsResponse),
+    			query: {
+    				top: pageTop,
+    				skip: pageSkip,
+    				orderBy: gm_safeString(orderBy),
+    				filter: normalizedFilter,
+    				windowStartIso: hasWindow ? windowStart : "",
+    				windowEndIso: hasWindow ? windowEnd : "",
+    				includeAttendees: shouldIncludeAttendees,
+    				includeBody: shouldIncludeBody,
+    				includeCancelled: shouldIncludeCancelled
+    			},
+    			items: items,
+    			providerUsed: "graph"
+    		};
+    		return {
+    			tokenMode: tokenInfo.mode,
+    			data: graphData
+    		};
+    	};
+    	
+    	var runEws = function() {
+    		var ewsContext = gm_ewsBuildContext(organizer, ewsUrl, ewsUsername, ewsPassword, ewsImpersonateUserId);
+    		var ewsData = gm_ewsListEvents(
+    			ewsContext,
+    			hasWindow ? windowStart : "",
+    			hasWindow ? windowEnd : "",
+    			pageTop,
+    			pageSkip,
+    			shouldIncludeAttendees,
+    			shouldIncludeBody,
+    			shouldIncludeCancelled,
+    			orderBy,
+    			normalizedFilter
+    		);
+    		ewsData.providerUsed = "ews";
+    		return {
+    			tokenMode: "ews",
+    			data: ewsData
+    		};
+    	};
+    	
+    	if (requestedProvider === "ews") {
+    		var ewsResult = runEws();
+    		tokenMode = ewsResult.tokenMode;
+    		data = ewsResult.data;
+    	} else {
+    		try {
+    			var graphResult = runGraph();
+    			tokenMode = graphResult.tokenMode;
+    			data = graphResult.data;
+    		} catch (graphError) {
+    			if (requestedProvider === "auto" && ewsConfigured && gm_ewsShouldFallback(graphError)) {
+    				var fallbackResult = runEws();
+    				tokenMode = "ews_fallback";
+    				data = fallbackResult.data;
+    				data.graphFallbackReason = gm_safeString(graphError.message);
+    			} else {
+    				throw graphError;
+    			}
+    		}
     	}
     	
-    	var eventsResponse = hasWindow
-    		? graphClient.users().byUserId(organizer).calendarView().withUrl(requestUrl).get()
-    		: graphClient.users().byUserId(organizer).events().withUrl(requestUrl).get();
-    	
-    	var items = gm_eventsToArray(eventsResponse.getValue(), shouldIncludeAttendees, shouldIncludeBody);
-    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
-    		organizerUserId: organizer,
-    		viewMode: hasWindow ? "calendarView" : "events",
-    		count: items.length,
-    		nextLink: gm_getOdataNextLink(eventsResponse),
-    		query: {
-    			top: pageTop,
-    			skip: pageSkip,
-    			orderBy: gm_safeString(orderBy),
-    			filter: normalizedFilter,
-    			windowStartIso: hasWindow ? windowStart : "",
-    			windowEndIso: hasWindow ? windowEnd : "",
-    			includeAttendees: shouldIncludeAttendees,
-    			includeBody: shouldIncludeBody,
-    			includeCancelled: shouldIncludeCancelled
-    		},
-    		items: items
-    	});
+    	data.providerRequested = requestedProvider;
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, data);
     } catch (e) {
     	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
     }'
@@ -147,6 +201,29 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
   comment: true keeps cancelled events in the response.
   description: Include cancelled events
   value: true
+↓provider [variables.RequestableVariable-1772559105001]: 
+  comment: Backend provider selection graph|ews|auto.
+  description: Provider selection graph, ews or auto
+  value: graph
+↓ewsUrl [variables.RequestableVariable-1772559105002]: 
+  comment: EWS endpoint URL used when provider is ews or auto fallback.
+  description: EWS endpoint URL
+  value: ${Lib_Microsoft_Teams.ewsUrl}
+↓ewsUsername [variables.RequestableVariable-1772559105003]: 
+  comment: EWS technical username used for Exchange on-prem authentication.
+  description: EWS username
+  value: ${Lib_Microsoft_Teams.ewsUsername}
+↓ewsPassword [variables.RequestableVariable-1772559105004]: 
+  comment: EWS technical password used for Exchange on-prem authentication.
+  description: EWS password
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+  visibility: '-1'
+↓ewsImpersonateUserId [variables.RequestableVariable-1772559105005]: 
+  comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+  description: Optional EWS impersonation mailbox
 ↓accessToken [variables.RequestableVariable-1772553001014]: 
   comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
   description: Delegated Microsoft Graph access token

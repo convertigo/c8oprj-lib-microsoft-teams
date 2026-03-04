@@ -184,10 +184,50 @@ Target Outlook event id to cancel.
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsImpersonateUserId
+</td>
+<td>
+Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsPassword
+</td>
+<td>
+EWS technical password used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUrl
+</td>
+<td>
+EWS endpoint URL used when provider is ews or auto fallback.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUsername
+</td>
+<td>
+EWS technical username used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;organizerUserId
 </td>
 <td>
 Target organizer mailbox (user id or UPN) used to cancel the event.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;provider
+</td>
+<td>
+Backend provider selection graph|ews|auto.
 </td>
 </tr>
 <tr>
@@ -286,6 +326,38 @@ Meeting end in ISO-8601 format (for example 2026-03-03T11:00:00).
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsImpersonateUserId
+</td>
+<td>
+Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsPassword
+</td>
+<td>
+EWS technical password used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUrl
+</td>
+<td>
+EWS endpoint URL used when provider is ews or auto fallback.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUsername
+</td>
+<td>
+EWS technical username used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;idempotencyKey
 </td>
 <td>
@@ -322,6 +394,14 @@ Online meeting provider value (teamsForBusiness by default).
 </td>
 <td>
 Target organizer mailbox (user id or UPN) used to create the event.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;provider
+</td>
+<td>
+Backend provider selection graph|ews|auto.
 </td>
 </tr>
 <tr>
@@ -570,6 +650,38 @@ Target Outlook event id to read.
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsImpersonateUserId
+</td>
+<td>
+Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsPassword
+</td>
+<td>
+EWS technical password used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUrl
+</td>
+<td>
+EWS endpoint URL used when provider is ews or auto fallback.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUsername
+</td>
+<td>
+EWS technical username used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;failIfExtensionsUnsupported
 </td>
 <td>
@@ -622,6 +734,14 @@ Optional extension id to fetch directly in metadataExtension field.
 </td>
 <td>
 Target organizer mailbox (user id or UPN) owning the event.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;provider
+</td>
+<td>
+Backend provider selection graph|ews|auto.
 </td>
 </tr>
 <tr>
@@ -680,6 +800,38 @@ Azure Entra application client secret used for app-only token acquisition.
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsImpersonateUserId
+</td>
+<td>
+Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsPassword
+</td>
+<td>
+EWS technical password used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUrl
+</td>
+<td>
+EWS endpoint URL used when provider is ews or auto fallback.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUsername
+</td>
+<td>
+EWS technical username used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;filter
 </td>
 <td>
@@ -724,6 +876,14 @@ Optional OData order by expression.
 </td>
 <td>
 Target organizer mailbox (user id or UPN) used to list events.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;provider
+</td>
+<td>
+Backend provider selection graph|ews|auto.
 </td>
 </tr>
 <tr>
@@ -1696,6 +1856,38 @@ Target Outlook event id to update.
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsImpersonateUserId
+</td>
+<td>
+Optional mailbox used for EWS impersonation, defaults to organizerUserId.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsPassword
+</td>
+<td>
+EWS technical password used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUrl
+</td>
+<td>
+EWS endpoint URL used when provider is ews or auto fallback.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ewsUsername
+</td>
+<td>
+EWS technical username used for Exchange on-prem authentication.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;mergeMode
 </td>
 <td>
@@ -1716,6 +1908,14 @@ Open extension identifier used when customMetadataJson is provided.
 </td>
 <td>
 Target organizer mailbox (user id or UPN) used to patch the event.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;provider
+</td>
+<td>
+Backend provider selection graph|ews|auto.
 </td>
 </tr>
 <tr>
