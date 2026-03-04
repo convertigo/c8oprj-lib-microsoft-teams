@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Cancels an existing Outlook/Teams meeting event.
 ↓inputVars [steps.InputVariablesStep-1772534787040]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Creates a Microsoft Graph webhook subscription for meeting events.
 ↓inputVars [steps.InputVariablesStep-1772553005001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

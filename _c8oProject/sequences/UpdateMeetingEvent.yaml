@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Updates an existing Outlook/Teams meeting event.
 ↓inputVars [steps.InputVariablesStep-1772534772396]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

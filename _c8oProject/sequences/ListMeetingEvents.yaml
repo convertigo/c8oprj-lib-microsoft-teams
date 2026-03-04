@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window.
 ↓inputVars [steps.InputVariablesStep-1772553001001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

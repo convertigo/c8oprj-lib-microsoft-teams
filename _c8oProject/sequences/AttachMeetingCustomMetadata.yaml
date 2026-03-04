@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Attaches custom business metadata to a meeting event via Graph extensions.
 ↓inputVars [steps.InputVariablesStep-1772534801524]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

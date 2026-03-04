@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Lists recurring meeting instances for a series master event in a specific time window.
 ↓inputVars [steps.InputVariablesStep-1772553003001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.

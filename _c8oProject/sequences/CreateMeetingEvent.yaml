@@ -1,4 +1,5 @@
 accessibility: Hidden
+authenticatedContextRequired: true
 comment: Creates an Outlook calendar event with Teams online meeting link.
 ↓inputVars [steps.InputVariablesStep-1772534755625]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
