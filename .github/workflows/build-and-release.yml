@@ -14,9 +14,6 @@
 
 name: Convertigo CI
 
-permissions:
-  contents: write
-
 on:
   push:
     branches:
@@ -109,7 +106,7 @@ jobs:
           name: logical-test-plan-report
           path: build/logical-test-plan-report.json
 
-      - name: Update tests badge JSON
+      - name: Publish test summary
         if: always()
         run: |
           python3 - <<'PY'
@@ -117,52 +114,26 @@ jobs:
           import pathlib
           
           report_path = pathlib.Path("build/logical-test-plan-report.json")
-          badge_path = pathlib.Path("badges/tests.json")
-          badge_path.parent.mkdir(parents=True, exist_ok=True)
-          
-          if report_path.exists():
+          if not report_path.exists():
+              content = "## Post-deploy Tests\\n\\nReport file is missing."
+          else:
               report = json.loads(report_path.read_text(encoding="utf-8"))
               summary = report.get("summary", {})
-              passed = int(summary.get("passed", 0))
-              total = int(summary.get("total", 0))
-              failed = int(summary.get("failed", 0))
-              skipped = int(summary.get("skipped", 0))
-              mandatory_failed = int(summary.get("mandatoryFailed", 0))
-              message = f"{passed}/{total} pass, {failed} fail, {skipped} skip"
-              if mandatory_failed > 0:
-                  color = "red"
-              elif failed > 0:
-                  color = "orange"
-              elif skipped > 0:
-                  color = "yellow"
-              else:
-                  color = "brightgreen"
-          else:
-              message = "report missing"
-              color = "lightgrey"
-          
-          badge = {
-              "schemaVersion": 1,
-              "label": "tests",
-              "message": message,
-              "color": color
-          }
-          badge_path.write_text(json.dumps(badge, ensure_ascii=True), encoding="utf-8")
-          print(f"Wrote {badge_path}")
+              content = (
+                  "## Post-deploy Tests\\n\\n"
+                  "| Metric | Value |\\n"
+                  "|---|---:|\\n"
+                  f"| Total | {int(summary.get('total', 0))} |\\n"
+                  f"| Passed | {int(summary.get('passed', 0))} |\\n"
+                  f"| Failed | {int(summary.get('failed', 0))} |\\n"
+                  f"| Skipped | {int(summary.get('skipped', 0))} |\\n"
+                  f"| Mandatory failed | {int(summary.get('mandatoryFailed', 0))} |\\n"
+              )
+          summary_file = pathlib.Path(".github_step_summary.md")
+          summary_file.write_text(content, encoding="utf-8")
+          print(content)
           PY
-
-      - name: Commit tests badge JSON
-        if: always() && github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add badges/tests.json
-          if git diff --cached --quiet; then
-            echo "No badge change to commit"
-          else
-            git commit -m "ci: update tests badge [skip ci]"
-            git push
-          fi
+          cat .github_step_summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail job if tests failed
         if: steps.run_tests.outcome == 'failure'
