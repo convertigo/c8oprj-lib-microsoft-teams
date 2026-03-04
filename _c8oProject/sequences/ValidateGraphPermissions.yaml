@@ -1,0 +1,143 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Validates Graph permissions by probing key Teams/Outlook endpoints. (Graph permissions Mixed (see checks array))
+↓inputVars [steps.InputVariablesStep-1772640092986]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteValidateGraphPermissions [steps.SimpleStep-1772640093019]: 
+  comment: Calls a configurable set of Microsoft Graph endpoints and reports authorization status.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "validate_graph_permissions";
+    var requiredPermission = "Mixed (see checks array)";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var defaultChecks = [
+    		"presence",
+    		"chats",
+    		"calendar",
+    		"onlineMeetings",
+    		"joinedTeams",
+    		"drive"
+    	];
+    	
+    	var requestedChecks = defaultChecks;
+    	if (!gm_isBlank(checksJson)) {
+    		requestedChecks = gm_parseJsonArrayInput("checksJson", checksJson, true);
+    		if (requestedChecks.length === 0) {
+    			requestedChecks = defaultChecks;
+    		}
+    	}
+    	
+    	var checkCatalog = {
+    		presence: { permission: "Presence.Read.All", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/presence", query: null },
+    		chats: { permission: "Chat.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/chats", query: { "$top": "1" } },
+    		calendar: { permission: "Calendars.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/events", query: { "$top": "1" } },
+    		onlineMeetings: { permission: "OnlineMeetings.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/onlineMeetings", query: { "$top": "1" } },
+    		joinedTeams: { permission: "Team.ReadBasic.All", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/joinedTeams", query: { "$top": "1" } },
+    		drive: { permission: "Files.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/drive/root", query: null }
+    	};
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	
+    	var results = [];
+    	var successCount = 0;
+    	var failureCount = 0;
+    	var i;
+    	for (i = 0; i < requestedChecks.length; i++) {
+    		var checkName = gm_safeString(requestedChecks[i]);
+    		if (gm_isBlank(checkName) || !Object.prototype.hasOwnProperty.call(checkCatalog, checkName)) {
+    			results.push({
+    				check: checkName,
+    				status: "SKIPPED",
+    				reason: "unknown_check"
+    			});
+    			continue;
+    		}
+    		var checkSpec = checkCatalog[checkName];
+    		try {
+    			var checkResult = gm_graphHttp(checkSpec.method, tokenInfo.token, checkSpec.path, checkSpec.query, null, null);
+    			results.push({
+    				check: checkName,
+    				status: "OK",
+    				requiredPermission: checkSpec.permission,
+    				statusCode: checkResult.statusCode
+    			});
+    			successCount++;
+    		} catch (checkError) {
+    			results.push({
+    				check: checkName,
+    				status: "ERROR",
+    				requiredPermission: checkSpec.permission,
+    				errorClass: gm_errorClass(checkError),
+    				errorMessage: gm_safeString(checkError.message)
+    			});
+    			failureCount++;
+    		}
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		checksRequested: requestedChecks,
+    		successCount: successCount,
+    		failureCount: failureCount,
+    		results: results
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640093060]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772640093118]: 
+  comment: User id or UPN used as target for permission probes.
+  description: User id or principal name
+  required: true
+↓checksJson [variables.RequestableVariable-1772640093178]: 
+  comment: Optional JSON array of checks names presence,chats,calendar,onlineMeetings,joinedTeams,drive.
+  description: Optional checks JSON array
+↓accessToken [variables.RequestableVariable-1772640093249]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640093324]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640093406]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640093504]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_ValidateGraphPermissions_Nominal [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772641908778]: 
+    value: user@contoso.com
+  ↓checksJson [variables.TestCaseVariable-1772641908779]: 
+    value: '["calendar","onlineMeetings","joinedTeams"]'
+  ↓accessToken [variables.TestCaseVariable-1772641908780]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908781]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908782]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908783]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

@@ -11,25 +11,44 @@ For more technical informations : [documentation](./project.md)
 - [Installation](#installation)
 - [Configuration Symbols](#configuration-symbols)
 - [Authentication Model](#authentication-model)
+- [Test Script (Endpoint-Only)](#test-script-(endpoint-only))
 - [Required Azure Permissions](#required-azure-permissions)
 - [Known Limitations](#known-limitations)
 - [Payload Examples](#payload-examples)
 - [Sequences](#sequences)
+    - [AddTeamMember](#addteammember)
     - [AttachMeetingCustomMetadata](#attachmeetingcustommetadata)
     - [BuildGraphFlatJar](#buildgraphflatjar)
     - [CancelMeetingEvent](#cancelmeetingevent)
     - [CreateMeetingEvent](#createmeetingevent)
+    - [CreateOnlineMeeting](#createonlinemeeting)
+    - [CreateTeam](#createteam)
+    - [CreateTeamChannel](#createteamchannel)
     - [FindMeetingEvent](#findmeetingevent)
     - [GetMeetingEvent](#getmeetingevent)
+    - [GetMeetingRecording](#getmeetingrecording)
+    - [GetMeetingTranscripts](#getmeetingtranscripts)
+    - [GetOnlineMeetingByJoinUrl](#getonlinemeetingbyjoinurl)
+    - [GetUserPresence](#getuserpresence)
     - [ListMeetingEvents](#listmeetingevents)
     - [ListMeetingInstances](#listmeetinginstances)
+    - [ListMeetingRecordings](#listmeetingrecordings)
+    - [ListTeamChannels](#listteamchannels)
+    - [ListUserChats](#listuserchats)
     - [PlanAndCreateMeeting](#planandcreatemeeting)
+    - [RemoveTeamMember](#removeteammember)
     - [RenewMeetingSubscription](#renewmeetingsubscription)
     - [RespondToMeetingEvent](#respondtomeetingevent)
+    - [SendChannelMessage](#sendchannelmessage)
+    - [SendChatMessage](#sendchatmessage)
+    - [ShareDriveItemToChatOrChannel](#sharedriveitemtochatorchannel)
     - [SubscribeMeetingChanges](#subscribemeetingchanges)
     - [SuggestMeetingSlots](#suggestmeetingslots)
     - [UnsubscribeMeetingChanges](#unsubscribemeetingchanges)
     - [UpdateMeetingEvent](#updatemeetingevent)
+    - [UpdateOnlineMeetingSettings](#updateonlinemeetingsettings)
+    - [UploadMeetingAttachment](#uploadmeetingattachment)
+    - [ValidateGraphPermissions](#validategraphpermissions)
 
 
 ## Installation
@@ -61,30 +80,76 @@ For more technical informations : [documentation](./project.md)
 ## Configuration Symbols
 
 These symbols can be set at project level and reused by all sequences.
+In a standard deployment, they are configured once on the server and not passed on each request.
 
 <table>
 <tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
-<tr><td><code>${Lib_Microsoft_Teams.tenantId}</code></td><td>Yes (app-only)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
-<tr><td><code>${Lib_Microsoft_Teams.clientId}</code></td><td>Yes (app-only)</td><td>No</td><td>Application (client) ID.</td></tr>
-<tr><td><code>${Lib_Microsoft_Teams.clientSecret.secret}</code></td><td>Yes (app-only)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.tenantId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.clientId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.clientSecret.secret}</code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
 </table>
 
 ## Authentication Model
 
-- Delegated mode: pass `accessToken`; tenant/client/secret are ignored.
-- Application mode: leave `accessToken` empty and provide tenant/client/secret.
+- Default mode (recommended for backend use): rely on server-side symbols (`tenantId`, `clientId`, `clientSecret`) and do not pass credentials in calls.
+- Delegated override: pass `accessToken`; tenant/client/secret are ignored.
+- Application override: pass tenant/client/secret explicitly in request variables.
 - Sequence responses expose `tokenMode` (`delegated` or `application`) for diagnostics.
+
+## Test Script (Endpoint-Only)
+
+The logical test-plan script supports endpoint-only execution for the common case where Graph symbols are already configured on the target Convertigo server.
+
+Minimal usage:
+```bash
+TEST_SERVER_ENDPOINT=http://localhost:18080 python3 ./scripts/run_testcases.py
+```
+
+Behavior:
+- The script logs in automatically by default through `ClientSDKtesting/login`.
+- It reuses returned `JSESSIONID` and `X-Convertigo-Authenticated` for authenticated sequences.
+- No `AZ_TENANT_ID`, `AZ_CLIENT_ID`, or `AZ_CLIENT_SECRET` is required in this mode.
+
+Optional overrides:
+- `C8O_LOGIN_PROJECT` and `C8O_LOGIN_SEQUENCE` to target another login sequence.
+- `C8O_LOGIN_EXTRA_FORM` when the login sequence expects additional variables (`k1=v1&k2=v2`).
+- `ACCESS_TOKEN` or `AZ_*` variables only when you want to bypass server-side symbols for a specific run.
 
 ## Required Azure Permissions
 
-Grant application permissions (or delegated equivalents) to Microsoft Graph:
+Grant Microsoft Graph permissions, then click `Grant admin consent` in Azure.
 
 <table>
-<tr><th>Functional scope</th><th>Recommended permissions</th></tr>
-<tr><td>Create/update/cancel meeting events</td><td><code>Calendars.ReadWrite</code></td></tr>
-<tr><td>Read meeting events</td><td><code>Calendars.Read</code> or <code>Calendars.ReadWrite</code></td></tr>
-<tr><td>Find availability / suggested slots</td><td><code>Calendars.Read.Shared</code> and/or <code>Calendars.ReadWrite</code> (free/busy usage)</td></tr>
+<tr><th>Functional scope</th><th>Sequences</th><th>Graph permissions (Application)</th><th>Notes</th></tr>
+<tr><td>Meeting CRUD</td><td><code>CreateMeetingEvent</code>, <code>GetMeetingEvent</code>, <code>FindMeetingEvent</code>, <code>UpdateMeetingEvent</code>, <code>CancelMeetingEvent</code>, <code>AttachMeetingCustomMetadata</code>, <code>ListMeetingEvents</code>, <code>ListMeetingInstances</code>, <code>PlanAndCreateMeeting</code></td><td><code>Calendars.ReadWrite</code> (+ optional <code>Calendars.Read</code>)</td><td><code>ListMeetingInstances</code> requires a recurring series master id.</td></tr>
+<tr><td>Availability and slot suggestion</td><td><code>SuggestMeetingSlots</code>, <code>PlanAndCreateMeeting</code></td><td><code>Calendars.ReadWrite</code> (or <code>Calendars.Read.Shared</code> for delegated scenarios)</td><td>Uses free/busy APIs under Graph calendar permissions.</td></tr>
+<tr><td>Online meetings</td><td><code>CreateOnlineMeeting</code>, <code>GetOnlineMeetingByJoinUrl</code>, <code>UpdateOnlineMeetingSettings</code></td><td><code>OnlineMeetings.ReadWrite.All</code> (+ optional <code>OnlineMeetings.Read.All</code>)</td><td>For app-only access, tenant policy may be required (Application Access Policy).</td></tr>
+<tr><td>Recordings and transcripts</td><td><code>ListMeetingRecordings</code>, <code>GetMeetingRecording</code>, <code>GetMeetingTranscripts</code></td><td><code>OnlineMeetingRecording.Read.All</code>, <code>OnlineMeetingTranscript.Read.All</code></td><td>Availability depends on tenant compliance and meeting policy.</td></tr>
+<tr><td>Team lifecycle and members</td><td><code>CreateTeam</code>, <code>CreateTeamChannel</code>, <code>ListTeamChannels</code>, <code>AddTeamMember</code>, <code>RemoveTeamMember</code></td><td><code>Team.Create</code>, <code>Group.ReadWrite.All</code>, <code>TeamMember.ReadWrite.All</code>, <code>Channel.Create</code>, <code>Channel.ReadBasic.All</code>, <code>ChannelSettings.Read.All</code></td><td>Some tenant configs also require <code>User.Read.All</code> and/or <code>Directory.Read.All</code>.</td></tr>
+<tr><td>Chats and channel messages</td><td><code>ListUserChats</code>, <code>SendChatMessage</code>, <code>SendChannelMessage</code>, <code>ShareDriveItemToChatOrChannel</code></td><td><code>Chat.Read.All</code> (read), message send in app-only is restricted</td><td>Normal message send is usually delegated (<code>ChatMessage.Send</code>, <code>ChannelMessage.Send</code>). App-only send is limited to migration scenarios (<code>Teamwork.Migrate.All</code>).</td></tr>
+<tr><td>Presence</td><td><code>GetUserPresence</code>, <code>ValidateGraphPermissions</code> (presence check)</td><td><code>Presence.Read.All</code></td><td>Presence endpoints commonly return 403 when permission is missing.</td></tr>
+<tr><td>Drive upload</td><td><code>UploadMeetingAttachment</code>, <code>ShareDriveItemToChatOrChannel</code></td><td><code>Files.ReadWrite.All</code></td><td>Mailbox/user must have OneDrive provisioned and accessible.</td></tr>
+<tr><td>Webhooks</td><td><code>SubscribeMeetingChanges</code>, <code>RenewMeetingSubscription</code>, <code>UnsubscribeMeetingChanges</code></td><td><code>Subscriptions.ReadWrite.All</code></td><td><code>notificationUrl</code> must be publicly reachable and answer Graph validation challenge.</td></tr>
+<tr><td>Diagnostic probe</td><td><code>ValidateGraphPermissions</code></td><td>Depends on enabled checks: <code>Calendars.Read</code>, <code>OnlineMeetings.Read.All</code>, <code>Team.ReadBasic.All</code>, <code>Files.Read</code>, <code>Presence.Read.All</code>, <code>Chat.Read.All</code></td><td>Use it to quickly identify missing grants per scope.</td></tr>
 </table>
+
+Recommended baseline for app-only scenarios:
+- <code>Calendars.ReadWrite</code>
+- <code>OnlineMeetings.ReadWrite.All</code>
+- <code>OnlineMeetingRecording.Read.All</code>
+- <code>OnlineMeetingTranscript.Read.All</code>
+- <code>Team.Create</code>
+- <code>Group.ReadWrite.All</code>
+- <code>TeamMember.ReadWrite.All</code>
+- <code>Channel.Create</code>
+- <code>Channel.ReadBasic.All</code>
+- <code>ChannelSettings.Read.All</code>
+- <code>Chat.Read.All</code>
+- <code>Presence.Read.All</code>
+- <code>Files.ReadWrite.All</code>
+- <code>Subscriptions.ReadWrite.All</code>
+- <code>User.Read.All</code>
+- <code>Directory.Read.All</code>
 
 ## Known Limitations
 
@@ -114,9 +179,9 @@ Grant application permissions (or delegated equivalents) to Microsoft Graph:
 ```
 ## Sequences
 
-### AttachMeetingCustomMetadata
+### AddTeamMember
 
-Attaches custom business metadata to a meeting event via Graph extensions.
+Adds a user as member or owner to a Microsoft Teams team. (Graph permissions TeamMember.ReadWrite.All|Group.ReadWrite.All)
 
 **variables**
 
@@ -131,7 +196,40 @@ Attaches custom business metadata to a meeting event via Graph extensions.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>rolesCsv</td><td>Optional comma-separated member roles, use owner for team owners.</td>
+</tr>
+<tr>
+<td>teamId</td><td>Target Teams team identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>User id or UPN to add as team member.</td>
+</tr>
+</table>
+
+### AttachMeetingCustomMetadata
+
+Attaches custom business metadata to a meeting event via Graph extensions. (Graph permissions Calendars.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>eventId</td><td>Target Outlook event id receiving metadata.</td>
@@ -159,7 +257,7 @@ Builds a flat JAR for Microsoft Graph Java SDK and stores it under .//libs
 
 ### CancelMeetingEvent
 
-Cancels an existing Outlook/Teams meeting event.
+Cancels an existing Outlook/Teams meeting event. (Graph permissions Calendars.ReadWrite)
 
 **variables**
 
@@ -177,7 +275,7 @@ Cancels an existing Outlook/Teams meeting event.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>eventId</td><td>Target Outlook event id to cancel.</td>
@@ -210,7 +308,7 @@ Cancels an existing Outlook/Teams meeting event.
 
 ### CreateMeetingEvent
 
-Creates an Outlook calendar event with Teams online meeting link.
+Creates an Outlook calendar event with Teams online meeting link. (Graph permissions Calendars.ReadWrite)
 
 **variables**
 
@@ -231,7 +329,7 @@ Creates an Outlook calendar event with Teams online meeting link.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>customMetadataJson</td><td>Optional custom metadata JSON persisted as open extension.</td>
@@ -283,9 +381,9 @@ Creates an Outlook calendar event with Teams online meeting link.
 </tr>
 </table>
 
-### FindMeetingEvent
+### CreateOnlineMeeting
 
-Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values.
+Creates a Microsoft Teams online meeting for a user mailbox. (Graph permissions OnlineMeetings.ReadWrite)
 
 **variables**
 
@@ -300,7 +398,124 @@ Finds meeting events by event id, iCalUId, transactionId and optional metadata e
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>endDateTimeIso</td><td>Meeting end datetime in ISO-8601 format with timezone or offset.</td>
+</tr>
+<tr>
+<td>externalId</td><td>Optional external business identifier for idempotent correlation.</td>
+</tr>
+<tr>
+<td>participantsJson</td><td>Optional JSON array of attendees [{upn|email,role}].</td>
+</tr>
+<tr>
+<td>startDateTimeIso</td><td>Meeting start datetime in ISO-8601 format with timezone or offset.</td>
+</tr>
+<tr>
+<td>subject</td><td>Online meeting subject displayed in Teams.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target organizer mailbox (user id or UPN) that owns the online meeting.</td>
+</tr>
+</table>
+
+### CreateTeam
+
+Creates a Microsoft Teams team from the standard template. (Graph permissions Team.Create|Group.ReadWrite.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>description</td><td>Optional team description.</td>
+</tr>
+<tr>
+<td>displayName</td><td>Team display name.</td>
+</tr>
+<tr>
+<td>ownerUserIdsJson</td><td>Optional JSON array of owner user ids or UPNs.</td>
+</tr>
+<tr>
+<td>templateName</td><td>Teams template name (standard by default).</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>visibility</td><td>Team visibility value Private or Public.</td>
+</tr>
+</table>
+
+### CreateTeamChannel
+
+Creates a channel in an existing Microsoft Teams team. (Graph permissions Channel.Create|Channel.ReadWrite.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>description</td><td>Optional channel description.</td>
+</tr>
+<tr>
+<td>displayName</td><td>Channel display name.</td>
+</tr>
+<tr>
+<td>membershipType</td><td>Channel membership type standard, private or shared.</td>
+</tr>
+<tr>
+<td>teamId</td><td>Target Teams team identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+</table>
+
+### FindMeetingEvent
+
+Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values. (Graph permissions Calendars.Read|Calendars.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>eventId</td><td>Optional direct event id lookup value.</td>
@@ -348,7 +563,7 @@ Finds meeting events by event id, iCalUId, transactionId and optional metadata e
 
 ### GetMeetingEvent
 
-Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension.
+Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 
 **variables**
 
@@ -363,7 +578,7 @@ Retrieves a Teams/Outlook meeting event with attendees, slot details and optiona
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>eventId</td><td>Target Outlook event id to read.</td>
@@ -409,9 +624,9 @@ Retrieves a Teams/Outlook meeting event with attendees, slot details and optiona
 </tr>
 </table>
 
-### ListMeetingEvents
+### GetMeetingRecording
 
-Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window.
+Retrieves one Teams meeting recording metadata entry. (Graph permissions OnlineMeetingRecording.Read.All)
 
 **variables**
 
@@ -426,7 +641,130 @@ Lists Outlook meeting events for an organizer mailbox, optionally scoped by a ca
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>onlineMeetingId</td><td>Target online meeting identifier.</td>
+</tr>
+<tr>
+<td>recordingId</td><td>Target meeting recording identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>User id or UPN owning the online meeting.</td>
+</tr>
+</table>
+
+### GetMeetingTranscripts
+
+Lists transcripts for a Teams online meeting. (Graph permissions OnlineMeetingTranscript.Read.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>onlineMeetingId</td><td>Target online meeting identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>top</td><td>Maximum number of transcripts returned.</td>
+</tr>
+<tr>
+<td>userId</td><td>User id or UPN owning the online meeting.</td>
+</tr>
+</table>
+
+### GetOnlineMeetingByJoinUrl
+
+Retrieves an online meeting by its Teams joinWebUrl. (Graph permissions OnlineMeetings.Read|OnlineMeetings.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>joinWebUrl</td><td>Teams meeting join URL used for lookup.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target organizer mailbox (user id or UPN) that owns the online meeting.</td>
+</tr>
+</table>
+
+### GetUserPresence
+
+Retrieves real-time Teams presence for a user. (Graph permissions Presence.Read.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target user id or UPN for presence lookup.</td>
+</tr>
+</table>
+
+### ListMeetingEvents
+
+Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window. (Graph permissions Calendars.Read|Calendars.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>ewsImpersonateUserId</td><td>Optional mailbox used for EWS impersonation, defaults to organizerUserId.</td>
@@ -480,7 +818,7 @@ Lists Outlook meeting events for an organizer mailbox, optionally scoped by a ca
 
 ### ListMeetingInstances
 
-Lists recurring meeting instances for a series master event in a specific time window.
+Lists recurring meeting instances for a series master event in a specific time window. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 
 **variables**
 
@@ -495,7 +833,7 @@ Lists recurring meeting instances for a series master event in a specific time w
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>eventId</td><td>Series master event id used to list recurring instances.</td>
@@ -532,9 +870,102 @@ Lists recurring meeting instances for a series master event in a specific time w
 </tr>
 </table>
 
+### ListMeetingRecordings
+
+Lists recordings for a Teams online meeting. (Graph permissions OnlineMeetingRecording.Read.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>onlineMeetingId</td><td>Target online meeting identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>top</td><td>Maximum number of recordings returned.</td>
+</tr>
+<tr>
+<td>userId</td><td>User id or UPN owning the online meeting.</td>
+</tr>
+</table>
+
+### ListTeamChannels
+
+Lists channels for a Microsoft Teams team. (Graph permissions Channel.ReadBasic.All|Channel.Read.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>teamId</td><td>Target Teams team identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>top</td><td>Maximum number of channels returned.</td>
+</tr>
+</table>
+
+### ListUserChats
+
+Lists Teams chats for a target user mailbox. (Graph permissions Chat.Read|Chat.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>top</td><td>Maximum number of chats returned per request.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target user mailbox (user id or UPN) whose chats must be listed.</td>
+</tr>
+</table>
+
 ### PlanAndCreateMeeting
 
-Plans an available slot and creates an Outlook/Teams meeting event in one backend call.
+Plans an available slot and creates an Outlook/Teams meeting event in one backend call. (Graph permissions Calendars.ReadWrite|freeBusy)
 
 **variables**
 
@@ -555,7 +986,7 @@ Plans an available slot and creates an Outlook/Teams meeting event in one backen
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>customMetadataJson</td><td>Optional custom metadata JSON persisted as open extension.</td>
@@ -619,9 +1050,9 @@ Plans an available slot and creates an Outlook/Teams meeting event in one backen
 </tr>
 </table>
 
-### RenewMeetingSubscription
+### RemoveTeamMember
 
-Renews an existing Microsoft Graph meeting subscription expiration datetime.
+Removes a member from a Microsoft Teams team. (Graph permissions TeamMember.ReadWrite.All|Group.ReadWrite.All)
 
 **variables**
 
@@ -636,7 +1067,37 @@ Renews an existing Microsoft Graph meeting subscription expiration datetime.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>memberId</td><td>Team member identifier to remove.</td>
+</tr>
+<tr>
+<td>teamId</td><td>Target Teams team identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+</table>
+
+### RenewMeetingSubscription
+
+Renews an existing Microsoft Graph meeting subscription expiration datetime. (Graph permissions Subscriptions.ReadWrite.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>expirationDateTimeIso</td><td>New subscription expiration datetime in ISO-8601 offset format.</td>
@@ -651,7 +1112,7 @@ Renews an existing Microsoft Graph meeting subscription expiration datetime.
 
 ### RespondToMeetingEvent
 
-Sends attendee response (accept, decline, tentative) for a meeting event.
+Sends attendee response (accept, decline, tentative) for a meeting event. (Graph permissions Calendars.ReadWrite)
 
 **variables**
 
@@ -666,7 +1127,7 @@ Sends attendee response (accept, decline, tentative) for a meeting event.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>comment</td><td>Optional attendee comment sent with meeting response.</td>
@@ -688,9 +1149,132 @@ Sends attendee response (accept, decline, tentative) for a meeting event.
 </tr>
 </table>
 
+### SendChannelMessage
+
+Sends a Teams message to a team channel. (Graph permissions ChannelMessage.Send|ChannelMessage.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>channelId</td><td>Target Teams channel identifier.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>contentType</td><td>Message content type, usually html or text.</td>
+</tr>
+<tr>
+<td>importance</td><td>Optional message importance value normal, high or urgent.</td>
+</tr>
+<tr>
+<td>message</td><td>Message content to send to the channel.</td>
+</tr>
+<tr>
+<td>subject</td><td>Optional message subject.</td>
+</tr>
+<tr>
+<td>teamId</td><td>Target Teams team identifier.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+</table>
+
+### SendChatMessage
+
+Sends a Teams message to a chat thread. (Graph permissions ChatMessage.Send|Chat.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>chatId</td><td>Target Teams chat identifier.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>contentType</td><td>Message content type, usually html or text.</td>
+</tr>
+<tr>
+<td>importance</td><td>Optional message importance value normal, high or urgent.</td>
+</tr>
+<tr>
+<td>message</td><td>Message content to send to the chat.</td>
+</tr>
+<tr>
+<td>subject</td><td>Optional message subject.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+</table>
+
+### ShareDriveItemToChatOrChannel
+
+Shares a Drive item link by posting it into a Teams chat or channel. (Graph permissions ChatMessage.Send|ChannelMessage.Send)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>channelId</td><td>Target channel id when targetType is channel.</td>
+</tr>
+<tr>
+<td>chatId</td><td>Target chat id when targetType is chat.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>driveItemWebUrl</td><td>Shareable Drive item web URL.</td>
+</tr>
+<tr>
+<td>message</td><td>Optional message prefix posted before the link.</td>
+</tr>
+<tr>
+<td>targetType</td><td>Share target type chat or channel.</td>
+</tr>
+<tr>
+<td>teamId</td><td>Target team id when targetType is channel.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+</table>
+
 ### SubscribeMeetingChanges
 
-Creates a Microsoft Graph webhook subscription for meeting events.
+Creates a Microsoft Graph webhook subscription for meeting events. (Graph permissions Subscriptions.ReadWrite.All)
 
 **variables**
 
@@ -708,7 +1292,7 @@ Creates a Microsoft Graph webhook subscription for meeting events.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>clientState</td><td>Optional client state echoed back in notifications.</td>
@@ -744,7 +1328,7 @@ Creates a Microsoft Graph webhook subscription for meeting events.
 
 ### SuggestMeetingSlots
 
-Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule.
+Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule. (Graph permissions Calendars.Read.Shared|Calendars.ReadWrite|freeBusy)
 
 **variables**
 
@@ -762,7 +1346,7 @@ Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSched
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>maxCandidates</td><td>Maximum returned suggestions for findMeetingTimes strategy.</td>
@@ -795,7 +1379,7 @@ Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSched
 
 ### UnsubscribeMeetingChanges
 
-Deletes an existing Microsoft Graph meeting subscription.
+Deletes an existing Microsoft Graph meeting subscription. (Graph permissions Subscriptions.ReadWrite.All)
 
 **variables**
 
@@ -810,7 +1394,7 @@ Deletes an existing Microsoft Graph meeting subscription.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>subscriptionId</td><td>Existing Graph subscription id to delete.</td>
@@ -822,7 +1406,7 @@ Deletes an existing Microsoft Graph meeting subscription.
 
 ### UpdateMeetingEvent
 
-Updates an existing Outlook/Teams meeting event.
+Updates an existing Outlook/Teams meeting event. (Graph permissions Calendars.ReadWrite)
 
 **variables**
 
@@ -843,7 +1427,7 @@ Updates an existing Outlook/Teams meeting event.
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
+<td>clientSecret</td><td></td>
 </tr>
 <tr>
 <td>customMetadataJson</td><td>Optional custom metadata JSON persisted as open extension.</td>
@@ -895,4 +1479,104 @@ Updates an existing Outlook/Teams meeting event.
 </tr>
 </table>
 
+### UpdateOnlineMeetingSettings
 
+Updates online meeting settings using a JSON patch payload. (Graph permissions OnlineMeetings.ReadWrite)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>onlineMeetingId</td><td>Target online meeting identifier.</td>
+</tr>
+<tr>
+<td>settingsJson</td><td>JSON object containing mutable online meeting properties to patch.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target organizer mailbox (user id or UPN) that owns the online meeting.</td>
+</tr>
+</table>
+
+### UploadMeetingAttachment
+
+Uploads a binary attachment into the user OneDrive for later sharing in Teams. (Graph permissions Files.ReadWrite.All)
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>contentType</td><td>MIME type sent to Graph for the uploaded content.</td>
+</tr>
+<tr>
+<td>fileContentBase64</td><td>Base64-encoded file bytes for upload.</td>
+</tr>
+<tr>
+<td>fileName</td><td>File name to create or replace in OneDrive.</td>
+</tr>
+<tr>
+<td>parentPath</td><td>OneDrive folder path under root where file is uploaded.</td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>Target user id or UPN owning the OneDrive destination.</td>
+</tr>
+</table>
+
+### ValidateGraphPermissions
+
+Validates Graph permissions by probing key Teams/Outlook endpoints. (Graph permissions Mixed (see checks array))
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>accessToken</td><td>Optional delegated bearer token. If provided, tenant/client/secret are ignored.</td>
+</tr>
+<tr>
+<td>checksJson</td><td>Optional JSON array of checks names presence,chats,calendar,onlineMeetings,joinedTeams,drive.</td>
+</tr>
+<tr>
+<td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>clientSecret</td><td></td>
+</tr>
+<tr>
+<td>tenantId</td><td>Azure Entra tenant id used for app-only token acquisition.</td>
+</tr>
+<tr>
+<td>userId</td><td>User id or UPN used as target for permission probes.</td>
+</tr>
+</table>

@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Creates an Outlook calendar event with Teams online meeting link.
+comment: Creates an Outlook calendar event with Teams online meeting link. (Graph permissions Calendars.ReadWrite)
 ↓inputVars [steps.InputVariablesStep-1772534755625]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteCreateMeeting [steps.SimpleStep-1772535589111]: 
@@ -214,7 +214,6 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772535589749]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true
@@ -223,7 +222,7 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
   visibility: '-1'
 ↓TC_CreateMeeting_Nominal [core.TestCase]: 
   ↓organizerUserId [variables.TestCaseVariable-1772537147746]: 
-    value: olivierp@convertigo.onmicrosoft.com
+    value: michelm@convertigo.onmicrosoft.com
   ↓subject [variables.TestCaseVariable-1772537147810]: 
     value: Weekly Project Sync
   ↓startIso [variables.TestCaseVariable-1772537147883]: 
@@ -240,4 +239,4 @@ comment: Creates an Outlook calendar event with Teams online meeting link.
   ↓attendeesJson [variables.TestCaseVariable-1772538727633]: 
     description: JSON array of attendees
     required: true
-    value: '[{"email":"julie.dupont@convertigo.onmicrosoft.com","name":"Julie Dupont","type":"required"},{"email":"paul.martin@convertigo.onmicrosoft.com","name":"Paul Martin","type":"optional"}]'
+    value: '[{"email":"charlesg@convertigo.onmicrosoft.com","name":"Charles GRIMONT","type":"required"},{"email":"fake.user@example.com","name":"Fake User","type":"optional"}]'

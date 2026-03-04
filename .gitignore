@@ -10,3 +10,8 @@
 /oas3/
 
 /build/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/

@@ -979,6 +979,352 @@ function gm_appendQueryParam(url, name, value) {
   return String(url) + separator + String(name) + "=" + gm_encodeQueryValue(value);
 }
 
+function gm_graphDefaultBaseUrl() {
+  return "https://graph.microsoft.com/v1.0";
+}
+
+function gm_graphResolveUrl(pathOrUrl) {
+  var raw = gm_require("pathOrUrl", pathOrUrl);
+  if (raw.indexOf("http://") === 0 || raw.indexOf("https://") === 0) {
+    return String(raw);
+  }
+  var path = String(raw);
+  if (path.charAt(0) !== "/") {
+    path = "/" + path;
+  }
+  return gm_graphDefaultBaseUrl() + path;
+}
+
+function gm_graphApplyQuery(url, queryParams) {
+  if (queryParams === null || queryParams === undefined) {
+    return String(url);
+  }
+  var outputUrl = String(url);
+  var key;
+  for (key in queryParams) {
+    if (!Object.prototype.hasOwnProperty.call(queryParams, key)) {
+      continue;
+    }
+    var value = queryParams[key];
+    if (value === null || value === undefined) {
+      continue;
+    }
+    if (value instanceof Array) {
+      var i;
+      for (i = 0; i < value.length; i++) {
+        if (!gm_isBlank(value[i])) {
+          outputUrl = gm_appendQueryParam(outputUrl, key, String(value[i]));
+        }
+      }
+      continue;
+    }
+    if (!gm_isBlank(value)) {
+      outputUrl = gm_appendQueryParam(outputUrl, key, String(value));
+    }
+  }
+  return outputUrl;
+}
+
+function gm_graphHeadersToObject(connection) {
+  var headers = {};
+  if (connection === null || connection === undefined) {
+    return headers;
+  }
+  var headerFields = null;
+  try {
+    headerFields = connection.getHeaderFields();
+  } catch (ignoreHeaderFields) {
+    return headers;
+  }
+  if (headerFields === null) {
+    return headers;
+  }
+
+  var iterator = headerFields.entrySet().iterator();
+  while (iterator.hasNext()) {
+    var entry = iterator.next();
+    var key = entry.getKey();
+    if (key === null || key === undefined) {
+      continue;
+    }
+    var values = entry.getValue();
+    var firstValue = "";
+    if (values !== null && values.size() > 0) {
+      firstValue = gm_safeString(values.get(0));
+    }
+    headers[String(key)] = firstValue;
+  }
+  return headers;
+}
+
+function gm_graphHeadersFromJavaMap(headerMap) {
+  var headers = {};
+  if (headerMap === null || headerMap === undefined) {
+    return headers;
+  }
+  var iterator = headerMap.entrySet().iterator();
+  while (iterator.hasNext()) {
+    var entry = iterator.next();
+    var key = entry.getKey();
+    if (key === null || key === undefined) {
+      continue;
+    }
+    var values = entry.getValue();
+    var firstValue = "";
+    if (values !== null && values.size() > 0) {
+      firstValue = gm_safeString(values.get(0));
+    }
+    headers[String(key)] = firstValue;
+  }
+  return headers;
+}
+
+function gm_graphExtractErrorMessage(parsedBody, fallbackMessage) {
+  if (parsedBody !== null && parsedBody !== undefined && typeof parsedBody === "object") {
+    if (parsedBody.error !== null && parsedBody.error !== undefined) {
+      if (!gm_isBlank(parsedBody.error.message)) {
+        return String(parsedBody.error.message);
+      }
+      if (!gm_isBlank(parsedBody.error.code)) {
+        return String(parsedBody.error.code);
+      }
+    }
+    if (!gm_isBlank(parsedBody.message)) {
+      return String(parsedBody.message);
+    }
+  }
+  return gm_safeString(fallbackMessage);
+}
+
+function gm_graphHttpWithJavaHttpClient(upperMethod, accessTokenValue, urlText, bodyText, additionalHeaders) {
+  var HttpClient = java.net.http.HttpClient;
+  var HttpRequest = java.net.http.HttpRequest;
+  var HttpResponse = java.net.http.HttpResponse;
+  var URI = java.net.URI;
+  var StandardCharsets = java.nio.charset.StandardCharsets;
+
+  var builder = HttpRequest.newBuilder().uri(URI.create(urlText));
+  builder.header("Authorization", "Bearer " + accessTokenValue);
+  builder.header("Accept", "application/json");
+
+  var hasContentType = false;
+  var headerName;
+  if (additionalHeaders !== null && additionalHeaders !== undefined) {
+    for (headerName in additionalHeaders) {
+      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
+        var headerValue = String(additionalHeaders[headerName]);
+        builder.header(String(headerName), headerValue);
+        if (String(headerName).toLowerCase() === "content-type") {
+          hasContentType = true;
+        }
+      }
+    }
+  }
+
+  if (!gm_isBlank(bodyText)) {
+    if (!hasContentType) {
+      builder.header("Content-Type", "application/json");
+    }
+    builder.method(upperMethod, HttpRequest.BodyPublishers.ofString(String(bodyText), StandardCharsets.UTF_8));
+  } else {
+    builder.method(upperMethod, HttpRequest.BodyPublishers.noBody());
+  }
+
+  var client = HttpClient.newBuilder().build();
+  var httpResponse = client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+  var statusCode = httpResponse.statusCode();
+  var responseBody = gm_safeString(httpResponse.body());
+  var parsedBody = null;
+  if (!gm_isBlank(responseBody)) {
+    try {
+      parsedBody = JSON.parse(String(responseBody));
+    } catch (ignoreParseBodyWithClient) {
+      parsedBody = null;
+    }
+  }
+
+  if (statusCode < 200 || statusCode >= 300) {
+    var graphErrorMessage = gm_graphExtractErrorMessage(parsedBody, responseBody);
+    throw new java.lang.RuntimeException("Graph API " + upperMethod + " " + urlText + " failed (" + statusCode + "): " + graphErrorMessage);
+  }
+
+  return {
+    statusCode: statusCode,
+    url: urlText,
+    headers: gm_graphHeadersFromJavaMap(httpResponse.headers().map()),
+    rawBody: gm_safeString(responseBody),
+    data: parsedBody
+  };
+}
+
+function gm_graphHttp(method, bearerToken, pathOrUrl, queryParams, bodyObject, additionalHeaders) {
+  var upperMethod = gm_defaultString(method, "GET").toUpperCase();
+  var urlText = gm_graphApplyQuery(gm_graphResolveUrl(pathOrUrl), queryParams);
+  var accessTokenValue = gm_require("accessToken", bearerToken);
+  var bodyText = "";
+  if (bodyObject !== null && bodyObject !== undefined) {
+    if (typeof bodyObject === "string") {
+      bodyText = String(bodyObject);
+    } else {
+      bodyText = JSON.stringify(bodyObject);
+    }
+  }
+
+  if (upperMethod === "PATCH") {
+    return gm_graphHttpWithJavaHttpClient(upperMethod, accessTokenValue, urlText, bodyText, additionalHeaders);
+  }
+
+  var url = new java.net.URL(urlText);
+  var connection = url.openConnection();
+  connection.setRequestMethod(upperMethod);
+  connection.setRequestProperty("Authorization", "Bearer " + accessTokenValue);
+  connection.setRequestProperty("Accept", "application/json");
+
+  var headerName;
+  if (additionalHeaders !== null && additionalHeaders !== undefined) {
+    for (headerName in additionalHeaders) {
+      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
+        connection.setRequestProperty(String(headerName), String(additionalHeaders[headerName]));
+      }
+    }
+  }
+
+  if (!gm_isBlank(bodyText)) {
+    connection.setDoOutput(true);
+    if (gm_isBlank(connection.getRequestProperty("Content-Type"))) {
+      connection.setRequestProperty("Content-Type", "application/json");
+    }
+    var output = connection.getOutputStream();
+    try {
+      output.write(new java.lang.String(bodyText).getBytes("UTF-8"));
+    } finally {
+      output.close();
+    }
+  }
+
+  var statusCode = connection.getResponseCode();
+  var responseBody = gm_readAll((statusCode >= 200 && statusCode < 300) ? connection.getInputStream() : connection.getErrorStream());
+  var parsedBody = null;
+  if (!gm_isBlank(responseBody)) {
+    try {
+      parsedBody = JSON.parse(String(responseBody));
+    } catch (ignoreParseBody) {
+      parsedBody = null;
+    }
+  }
+
+  if (statusCode < 200 || statusCode >= 300) {
+    var graphErrorMessage = gm_graphExtractErrorMessage(parsedBody, responseBody);
+    throw new java.lang.RuntimeException("Graph API " + upperMethod + " " + urlText + " failed (" + statusCode + "): " + graphErrorMessage);
+  }
+
+  return {
+    statusCode: statusCode,
+    url: urlText,
+    headers: gm_graphHeadersToObject(connection),
+    rawBody: gm_safeString(responseBody),
+    data: parsedBody
+  };
+}
+
+function gm_graphPayloadArray(responseObject) {
+  if (responseObject === null || responseObject === undefined || responseObject.data === null || responseObject.data === undefined) {
+    return [];
+  }
+  if (responseObject.data.value !== null && responseObject.data.value !== undefined && responseObject.data.value instanceof Array) {
+    return responseObject.data.value;
+  }
+  if (responseObject.data instanceof Array) {
+    return responseObject.data;
+  }
+  return [];
+}
+
+function gm_base64ToBytes(base64Content) {
+  var text = gm_require("fileContentBase64", base64Content);
+  try {
+    return java.util.Base64.getDecoder().decode(String(text));
+  } catch (decodeError) {
+    throw new java.lang.IllegalArgumentException("fileContentBase64 must be valid base64");
+  }
+}
+
+function gm_graphUploadBytes(bearerToken, pathOrUrl, queryParams, byteArray, contentType, additionalHeaders) {
+  if (byteArray === null || byteArray === undefined) {
+    throw new java.lang.IllegalArgumentException("byteArray cannot be null");
+  }
+  var urlText = gm_graphApplyQuery(gm_graphResolveUrl(pathOrUrl), queryParams);
+  var url = new java.net.URL(urlText);
+  var connection = url.openConnection();
+  connection.setRequestMethod("PUT");
+  connection.setRequestProperty("Authorization", "Bearer " + gm_require("accessToken", bearerToken));
+  connection.setRequestProperty("Accept", "application/json");
+  connection.setRequestProperty("Content-Type", gm_defaultString(contentType, "application/octet-stream"));
+  connection.setDoOutput(true);
+
+  var headerName;
+  if (additionalHeaders !== null && additionalHeaders !== undefined) {
+    for (headerName in additionalHeaders) {
+      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
+        connection.setRequestProperty(String(headerName), String(additionalHeaders[headerName]));
+      }
+    }
+  }
+
+  var output = connection.getOutputStream();
+  try {
+    output.write(byteArray);
+  } finally {
+    output.close();
+  }
+
+  var statusCode = connection.getResponseCode();
+  var responseBody = gm_readAll((statusCode >= 200 && statusCode < 300) ? connection.getInputStream() : connection.getErrorStream());
+  var parsedBody = null;
+  if (!gm_isBlank(responseBody)) {
+    try {
+      parsedBody = JSON.parse(String(responseBody));
+    } catch (ignoreUploadParseBody) {
+      parsedBody = null;
+    }
+  }
+
+  if (statusCode < 200 || statusCode >= 300) {
+    var graphErrorMessage = gm_graphExtractErrorMessage(parsedBody, responseBody);
+    throw new java.lang.RuntimeException("Graph API PUT " + urlText + " failed (" + statusCode + "): " + graphErrorMessage);
+  }
+
+  return {
+    statusCode: statusCode,
+    url: urlText,
+    headers: gm_graphHeadersToObject(connection),
+    rawBody: gm_safeString(responseBody),
+    data: parsedBody
+  };
+}
+
+function gm_parseJsonObjectInput(variableName, rawJson, allowEmpty) {
+  if (gm_isBlank(rawJson)) {
+    return allowEmpty ? {} : null;
+  }
+  var parsed = JSON.parse(String(rawJson));
+  if (parsed === null || parsed === undefined || parsed instanceof Array || typeof parsed !== "object") {
+    throw new java.lang.IllegalArgumentException(variableName + " must be a JSON object");
+  }
+  return parsed;
+}
+
+function gm_parseJsonArrayInput(variableName, rawJson, allowEmpty) {
+  if (gm_isBlank(rawJson)) {
+    return allowEmpty ? [] : null;
+  }
+  var parsed = JSON.parse(String(rawJson));
+  if (!(parsed instanceof Array)) {
+    throw new java.lang.IllegalArgumentException(variableName + " must be a JSON array");
+  }
+  return parsed;
+}
+
 function gm_odataEscapeString(value) {
   return String(value).replace(/'/g, "''");
 }

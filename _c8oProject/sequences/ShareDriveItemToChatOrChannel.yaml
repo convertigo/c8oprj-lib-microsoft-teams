@@ -1,0 +1,129 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Shares a Drive item link by posting it into a Teams chat or channel. (Graph permissions ChatMessage.Send|ChannelMessage.Send)
+↓inputVars [steps.InputVariablesStep-1772640087806]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteShareDriveItemToChatOrChannel [steps.SimpleStep-1772640087842]: 
+  comment: Calls Microsoft Graph chat/channel messages endpoint with an HTML link payload.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "share_drive_item";
+    var requiredPermission = "ChatMessage.Send|ChannelMessage.Send";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetType = gm_defaultString(targetType, "chat").toLowerCase();
+    	var linkUrl = gm_require("driveItemWebUrl", driveItemWebUrl);
+    	var defaultMessage = gm_isBlank(message) ? "Shared document" : String(message);
+    	var htmlContent = defaultMessage + "<br/><a href=\"" + linkUrl + "\">" + linkUrl + "</a>";
+    	var payload = {
+    		body: {
+    			contentType: "html",
+    			content: htmlContent
+    		}
+    	};
+    	
+    	var targetPath = "";
+    	var resultContext = {
+    		targetType: targetType,
+    		driveItemWebUrl: linkUrl
+    	};
+    	if (targetType === "channel") {
+    		var targetTeamId = gm_require("teamId", teamId);
+    		var targetChannelId = gm_require("channelId", channelId);
+    		targetPath = "/teams/" + gm_urlEncode(targetTeamId) + "/channels/" + gm_urlEncode(targetChannelId) + "/messages";
+    		resultContext.teamId = targetTeamId;
+    		resultContext.channelId = targetChannelId;
+    	} else if (targetType === "chat") {
+    		var targetChatId = gm_require("chatId", chatId);
+    		targetPath = "/chats/" + gm_urlEncode(targetChatId) + "/messages";
+    		resultContext.chatId = targetChatId;
+    	} else {
+    		throw new java.lang.IllegalArgumentException("targetType must be chat or channel");
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var sent = gm_graphHttp("POST", tokenInfo.token, targetPath, null, payload, null);
+    	var data = sent.data === null || sent.data === undefined ? {} : sent.data;
+    	
+    	resultContext.messageId = gm_safeString(data.id);
+    	resultContext.createdDateTime = gm_safeString(data.createdDateTime);
+    	resultContext.webUrl = gm_safeString(data.webUrl);
+    	resultContext.raw = data;
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, resultContext);
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640087881]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓targetType [variables.RequestableVariable-1772640087928]: 
+  comment: Share target type chat or channel.
+  description: Target type chat or channel
+  value: chat
+↓chatId [variables.RequestableVariable-1772640087987]: 
+  comment: Target chat id when targetType is chat.
+  description: Target chat id
+↓teamId [variables.RequestableVariable-1772640088066]: 
+  comment: Target team id when targetType is channel.
+  description: Target team id
+↓channelId [variables.RequestableVariable-1772640088143]: 
+  comment: Target channel id when targetType is channel.
+  description: Target channel id
+↓driveItemWebUrl [variables.RequestableVariable-1772640088220]: 
+  comment: Shareable Drive item web URL.
+  description: Drive item web URL
+  required: true
+↓message [variables.RequestableVariable-1772640088305]: 
+  comment: Optional message prefix posted before the link.
+  description: Optional message prefix
+↓accessToken [variables.RequestableVariable-1772640088398]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640088506]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640088618]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640088739]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_ShareDriveItemToChatOrChannel_Nominal [core.TestCase]: 
+  ↓targetType [variables.TestCaseVariable-1772641908752]: 
+    value: chat
+  ↓chatId [variables.TestCaseVariable-1772641908753]: 
+    value: 19:dummy@thread.v2
+  ↓teamId [variables.TestCaseVariable-1772641908754]: 
+  ↓channelId [variables.TestCaseVariable-1772641908755]: 
+  ↓driveItemWebUrl [variables.TestCaseVariable-1772641908756]: 
+    value: https://contoso.sharepoint.com/:x:/r/sites/demo/Shared%20Documents/file.txt
+  ↓message [variables.TestCaseVariable-1772641908757]: 
+    value: Shared by test case
+  ↓accessToken [variables.TestCaseVariable-1772641908758]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908759]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908760]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908761]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

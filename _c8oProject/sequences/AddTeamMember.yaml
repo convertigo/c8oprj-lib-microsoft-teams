@@ -1,0 +1,108 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Adds a user as member or owner to a Microsoft Teams team. (Graph permissions TeamMember.ReadWrite.All|Group.ReadWrite.All)
+↓inputVars [steps.InputVariablesStep-1772640067397]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteAddTeamMember [steps.SimpleStep-1772640067439]: 
+  comment: Calls Microsoft Graph team members endpoint to add a conversation member.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "add_team_member";
+    var requiredPermission = "TeamMember.ReadWrite.All|Group.ReadWrite.All";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetTeamId = gm_require("teamId", teamId);
+    	var targetUserId = gm_require("userId", userId);
+    	var roles = [];
+    	if (!gm_isBlank(rolesCsv)) {
+    		var chunks = String(rolesCsv).split(",");
+    		var i;
+    		for (i = 0; i < chunks.length; i++) {
+    			var roleValue = String(chunks[i]).trim();
+    			if (roleValue.length > 0) {
+    				roles.push(roleValue);
+    			}
+    		}
+    	}
+    	
+    	var payload = {
+    		"@odata.type": "#microsoft.graph.aadUserConversationMember",
+    		roles: roles,
+    		"user@odata.bind": "https://graph.microsoft.com/v1.0/users(''" + gm_odataEscapeString(targetUserId) + "'')"
+    	};
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var created = gm_graphHttp("POST", tokenInfo.token, "/teams/" + gm_urlEncode(targetTeamId) + "/members", null, payload, null);
+    	var data = created.data === null || created.data === undefined ? {} : created.data;
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		teamId: targetTeamId,
+    		memberId: gm_safeString(data.id),
+    		userId: targetUserId,
+    		roles: roles,
+    		raw: data
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640067483]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓teamId [variables.RequestableVariable-1772640067547]: 
+  comment: Target Teams team identifier.
+  description: Teams team id
+  required: true
+↓userId [variables.RequestableVariable-1772640067612]: 
+  comment: User id or UPN to add as team member.
+  description: User id or principal name
+  required: true
+↓rolesCsv [variables.RequestableVariable-1772640067698]: 
+  comment: Optional comma-separated member roles, use owner for team owners.
+  description: Optional member roles CSV
+↓accessToken [variables.RequestableVariable-1772640067790]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640067894]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640067990]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640068088]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_AddTeamMember_Nominal [core.TestCase]: 
+  ↓teamId [variables.TestCaseVariable-1772641908649]: 
+    value: 00000000-0000-0000-0000-000000000000
+  ↓userId [variables.TestCaseVariable-1772641908650]: 
+    value: user@contoso.com
+  ↓rolesCsv [variables.TestCaseVariable-1772641908651]: 
+    value: member
+  ↓accessToken [variables.TestCaseVariable-1772641908652]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908653]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908654]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908655]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

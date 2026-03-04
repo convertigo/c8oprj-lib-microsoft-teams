@@ -1,0 +1,129 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Creates a Microsoft Teams team from the standard template. (Graph permissions Team.Create|Group.ReadWrite.All)
+↓inputVars [steps.InputVariablesStep-1772640070889]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteCreateTeam [steps.SimpleStep-1772640070924]: 
+  comment: Calls Microsoft Graph teams endpoint to create a new team.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "create_team";
+    var requiredPermission = "Team.Create|Group.ReadWrite.All";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var displayNameValue = gm_require("displayName", displayName);
+    	var payload = {
+    		"template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates(''" + gm_defaultString(templateName, "standard") + "'')",
+    		displayName: displayNameValue,
+    		description: gm_safeString(description),
+    		visibility: gm_defaultString(visibility, "Private")
+    	};
+    	
+    	if (!gm_isBlank(ownerUserIdsJson)) {
+    		var owners = gm_parseJsonArrayInput("ownerUserIdsJson", ownerUserIdsJson, true);
+    		var members = [];
+    		var i;
+    		for (i = 0; i < owners.length; i++) {
+    			var ownerUserId = owners[i];
+    			if (gm_isBlank(ownerUserId)) {
+    				continue;
+    			}
+    			members.push({
+    				"@odata.type": "#microsoft.graph.aadUserConversationMember",
+    				roles: ["owner"],
+    				"user@odata.bind": "https://graph.microsoft.com/v1.0/users(''" + gm_odataEscapeString(ownerUserId) + "'')"
+    			});
+    		}
+    		if (members.length > 0) {
+    			payload.members = members;
+    		}
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var created = gm_graphHttp("POST", tokenInfo.token, "/teams", null, payload, null);
+    	var locationHeader = gm_safeString(created.headers.Location);
+    	if (gm_isBlank(locationHeader)) {
+    		locationHeader = gm_safeString(created.headers.location);
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		statusCode: created.statusCode,
+    		operationLocation: locationHeader,
+    		team: created.data,
+    		requestPayload: payload
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640070966]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓displayName [variables.RequestableVariable-1772640071025]: 
+  comment: Team display name.
+  description: Team display name
+  required: true
+↓description [variables.RequestableVariable-1772640071083]: 
+  comment: Optional team description.
+  description: Team description
+↓visibility [variables.RequestableVariable-1772640071159]: 
+  comment: Team visibility value Private or Public.
+  description: Team visibility
+  value: Private
+↓templateName [variables.RequestableVariable-1772640071232]: 
+  comment: Teams template name (standard by default).
+  description: Team template name
+  value: standard
+↓ownerUserIdsJson [variables.RequestableVariable-1772640071313]: 
+  comment: Optional JSON array of owner user ids or UPNs.
+  description: Optional team owner ids JSON array
+↓accessToken [variables.RequestableVariable-1772640071409]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640071515]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640071620]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640071730]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_CreateTeam_Nominal [core.TestCase]: 
+  ↓displayName [variables.TestCaseVariable-1772641908666]: 
+    value: Convertigo Smoke Team
+  ↓description [variables.TestCaseVariable-1772641908667]: 
+    value: Team created by test case
+  ↓visibility [variables.TestCaseVariable-1772641908668]: 
+    value: Private
+  ↓templateName [variables.TestCaseVariable-1772641908669]: 
+    value: standard
+  ↓ownerUserIdsJson [variables.TestCaseVariable-1772641908670]: 
+    value: '["user@contoso.com"]'
+  ↓accessToken [variables.TestCaseVariable-1772641908671]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908672]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908673]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908674]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

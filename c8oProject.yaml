@@ -6,18 +6,36 @@
   httpSessionTimeout: 60
   version: 8.0.0.3
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
+  ↓AddTeamMember [sequences.GenericSequence]: 🗏 sequences/AddTeamMember.yaml
   ↓AttachMeetingCustomMetadata [sequences.GenericSequence]: 🗏 sequences/AttachMeetingCustomMetadata.yaml
   ↓BuildGraphFlatJar [sequences.GenericSequence]: 🗏 sequences/BuildGraphFlatJar.yaml
   ↓CancelMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CancelMeetingEvent.yaml
   ↓CreateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/CreateMeetingEvent.yaml
+  ↓CreateOnlineMeeting [sequences.GenericSequence]: 🗏 sequences/CreateOnlineMeeting.yaml
+  ↓CreateTeam [sequences.GenericSequence]: 🗏 sequences/CreateTeam.yaml
+  ↓CreateTeamChannel [sequences.GenericSequence]: 🗏 sequences/CreateTeamChannel.yaml
   ↓FindMeetingEvent [sequences.GenericSequence]: 🗏 sequences/FindMeetingEvent.yaml
   ↓GetMeetingEvent [sequences.GenericSequence]: 🗏 sequences/GetMeetingEvent.yaml
+  ↓GetMeetingRecording [sequences.GenericSequence]: 🗏 sequences/GetMeetingRecording.yaml
+  ↓GetMeetingTranscripts [sequences.GenericSequence]: 🗏 sequences/GetMeetingTranscripts.yaml
+  ↓GetOnlineMeetingByJoinUrl [sequences.GenericSequence]: 🗏 sequences/GetOnlineMeetingByJoinUrl.yaml
+  ↓GetUserPresence [sequences.GenericSequence]: 🗏 sequences/GetUserPresence.yaml
   ↓ListMeetingEvents [sequences.GenericSequence]: 🗏 sequences/ListMeetingEvents.yaml
   ↓ListMeetingInstances [sequences.GenericSequence]: 🗏 sequences/ListMeetingInstances.yaml
+  ↓ListMeetingRecordings [sequences.GenericSequence]: 🗏 sequences/ListMeetingRecordings.yaml
+  ↓ListTeamChannels [sequences.GenericSequence]: 🗏 sequences/ListTeamChannels.yaml
+  ↓ListUserChats [sequences.GenericSequence]: 🗏 sequences/ListUserChats.yaml
   ↓PlanAndCreateMeeting [sequences.GenericSequence]: 🗏 sequences/PlanAndCreateMeeting.yaml
+  ↓RemoveTeamMember [sequences.GenericSequence]: 🗏 sequences/RemoveTeamMember.yaml
   ↓RenewMeetingSubscription [sequences.GenericSequence]: 🗏 sequences/RenewMeetingSubscription.yaml
   ↓RespondToMeetingEvent [sequences.GenericSequence]: 🗏 sequences/RespondToMeetingEvent.yaml
+  ↓SendChannelMessage [sequences.GenericSequence]: 🗏 sequences/SendChannelMessage.yaml
+  ↓SendChatMessage [sequences.GenericSequence]: 🗏 sequences/SendChatMessage.yaml
+  ↓ShareDriveItemToChatOrChannel [sequences.GenericSequence]: 🗏 sequences/ShareDriveItemToChatOrChannel.yaml
   ↓SubscribeMeetingChanges [sequences.GenericSequence]: 🗏 sequences/SubscribeMeetingChanges.yaml
   ↓SuggestMeetingSlots [sequences.GenericSequence]: 🗏 sequences/SuggestMeetingSlots.yaml
   ↓UnsubscribeMeetingChanges [sequences.GenericSequence]: 🗏 sequences/UnsubscribeMeetingChanges.yaml
   ↓UpdateMeetingEvent [sequences.GenericSequence]: 🗏 sequences/UpdateMeetingEvent.yaml
+  ↓UpdateOnlineMeetingSettings [sequences.GenericSequence]: 🗏 sequences/UpdateOnlineMeetingSettings.yaml
+  ↓UploadMeetingAttachment [sequences.GenericSequence]: 🗏 sequences/UploadMeetingAttachment.yaml
+  ↓ValidateGraphPermissions [sequences.GenericSequence]: 🗏 sequences/ValidateGraphPermissions.yaml

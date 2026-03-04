@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension.
+comment: Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 ↓inputVars [steps.InputVariablesStep-1772536002001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteGetMeeting [steps.SimpleStep-1772536002002]: 
@@ -231,7 +231,6 @@ comment: Retrieves a Teams/Outlook meeting event with attendees, slot details an
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772536002014]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

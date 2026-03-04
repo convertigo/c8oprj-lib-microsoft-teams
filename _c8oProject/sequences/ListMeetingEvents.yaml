@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window.
+comment: Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 ↓inputVars [steps.InputVariablesStep-1772553001001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteListMeetingEvents [steps.SimpleStep-1772553001002]: 
@@ -237,7 +237,6 @@ comment: Lists Outlook meeting events for an organizer mailbox, optionally scope
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772553001017]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

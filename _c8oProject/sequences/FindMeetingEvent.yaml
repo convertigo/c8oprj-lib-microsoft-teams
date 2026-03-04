@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values.
+comment: Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 ↓inputVars [steps.InputVariablesStep-1772553002001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteFindMeetingEvent [steps.SimpleStep-1772553002002]: 
@@ -246,7 +246,6 @@ comment: Finds meeting events by event id, iCalUId, transactionId and optional m
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772553002019]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

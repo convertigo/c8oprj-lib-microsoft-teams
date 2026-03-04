@@ -1,0 +1,130 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Sends a Teams message to a team channel. (Graph permissions ChannelMessage.Send|ChannelMessage.ReadWrite)
+↓inputVars [steps.InputVariablesStep-1772640084354]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteSendChannelMessage [steps.SimpleStep-1772640084389]: 
+  comment: Calls Microsoft Graph channel messages endpoint to post a new message.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "send_channel_message";
+    var requiredPermission = "ChannelMessage.Send|ChannelMessage.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetTeamId = gm_require("teamId", teamId);
+    	var targetChannelId = gm_require("channelId", channelId);
+    	var messageContent = gm_require("message", message);
+    	var contentTypeValue = gm_defaultString(contentType, "html");
+    	
+    	var payload = {
+    		body: {
+    			contentType: contentTypeValue,
+    			content: String(messageContent)
+    		}
+    	};
+    	if (!gm_isBlank(subject)) {
+    		payload.subject = String(subject);
+    	}
+    	if (!gm_isBlank(importance)) {
+    		payload.importance = String(importance);
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var posted = gm_graphHttp(
+    		"POST",
+    		tokenInfo.token,
+    		"/teams/" + gm_urlEncode(targetTeamId) + "/channels/" + gm_urlEncode(targetChannelId) + "/messages",
+    		null,
+    		payload,
+    		null
+    	);
+    	var data = posted.data === null || posted.data === undefined ? {} : posted.data;
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		teamId: targetTeamId,
+    		channelId: targetChannelId,
+    		messageId: gm_safeString(data.id),
+    		createdDateTime: gm_safeString(data.createdDateTime),
+    		webUrl: gm_safeString(data.webUrl),
+    		raw: data
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640084431]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓teamId [variables.RequestableVariable-1772640084488]: 
+  comment: Target Teams team identifier.
+  description: Teams team id
+  required: true
+↓channelId [variables.RequestableVariable-1772640084546]: 
+  comment: Target Teams channel identifier.
+  description: Teams channel id
+  required: true
+↓message [variables.RequestableVariable-1772640084618]: 
+  comment: Message content to send to the channel.
+  description: Message body content
+  required: true
+↓contentType [variables.RequestableVariable-1772640084703]: 
+  comment: Message content type, usually html or text.
+  description: Message content type
+  value: html
+↓subject [variables.RequestableVariable-1772640084792]: 
+  comment: Optional message subject.
+  description: Optional message subject
+↓importance [variables.RequestableVariable-1772640084881]: 
+  comment: Optional message importance value normal, high or urgent.
+  description: Optional message importance
+↓accessToken [variables.RequestableVariable-1772640084984]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640085091]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640085217]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640085336]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_SendChannelMessage_Nominal [core.TestCase]: 
+  ↓teamId [variables.TestCaseVariable-1772641908733]: 
+    value: 00000000-0000-0000-0000-000000000000
+  ↓channelId [variables.TestCaseVariable-1772641908734]: 
+    value: 19:dummy@thread.tacv2
+  ↓message [variables.TestCaseVariable-1772641908735]: 
+    value: Convertigo smoke channel message
+  ↓contentType [variables.TestCaseVariable-1772641908736]: 
+    value: text
+  ↓subject [variables.TestCaseVariable-1772641908737]: 
+  ↓importance [variables.TestCaseVariable-1772641908738]: 
+    value: normal
+  ↓accessToken [variables.TestCaseVariable-1772641908739]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908740]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908741]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908742]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

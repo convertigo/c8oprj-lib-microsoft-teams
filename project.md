@@ -22,12 +22,12 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
-<details><summary><b>AttachMeetingCustomMetadata</b> : Attaches custom business metadata to a meeting event via Graph extensions</summary><blockquote><p>
+<details><summary><b>AddTeamMember</b> : Adds a user as member or owner to a Microsoft Teams team</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") AttachMeetingCustomMetadata
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") AddTeamMember
 
-Attaches custom business metadata to a meeting event via Graph extensions.
+Adds a user as member or owner to a Microsoft Teams team. (Graph permissions TeamMember.ReadWrite.All|Group.ReadWrite.All)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -61,7 +61,85 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;rolesCsv
+</td>
+<td>
+Optional comma-separated member roles, use owner for team owners.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target Teams team identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+User id or UPN to add as team member.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>AttachMeetingCustomMetadata</b> : Attaches custom business metadata to a meeting event via Graph extensions</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") AttachMeetingCustomMetadata
+
+Attaches custom business metadata to a meeting event via Graph extensions. (Graph permissions Calendars.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
 </td>
 </tr>
 <tr>
@@ -129,7 +207,7 @@ Builds a flat JAR for Microsoft Graph Java SDK and stores it under .//libs
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") CancelMeetingEvent
 
-Cancels an existing Outlook/Teams meeting event.
+Cancels an existing Outlook/Teams meeting event. (Graph permissions Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -171,7 +249,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -255,7 +333,7 @@ Azure Entra tenant id used for app-only token acquisition.
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") CreateMeetingEvent
 
-Creates an Outlook calendar event with Teams online meeting link.
+Creates an Outlook calendar event with Teams online meeting link. (Graph permissions Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -305,7 +383,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -440,12 +518,12 @@ Time zone used for start and end values.
 
 </p></blockquote></details>
 
-<details><summary><b>FindMeetingEvent</b> : Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values</summary><blockquote><p>
+<details><summary><b>CreateOnlineMeeting</b> : Creates a Microsoft Teams online meeting for a user mailbox</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") FindMeetingEvent
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") CreateOnlineMeeting
 
-Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values.
+Creates a Microsoft Teams online meeting for a user mailbox. (Graph permissions OnlineMeetings.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -479,7 +557,289 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;endDateTimeIso
+</td>
+<td>
+Meeting end datetime in ISO-8601 format with timezone or offset.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;externalId
+</td>
+<td>
+Optional external business identifier for idempotent correlation.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;participantsJson
+</td>
+<td>
+Optional JSON array of attendees [{upn|email,role}].
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;startDateTimeIso
+</td>
+<td>
+Meeting start datetime in ISO-8601 format with timezone or offset.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;subject
+</td>
+<td>
+Online meeting subject displayed in Teams.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target organizer mailbox (user id or UPN) that owns the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>CreateTeam</b> : Creates a Microsoft Teams team from the standard template</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") CreateTeam
+
+Creates a Microsoft Teams team from the standard template. (Graph permissions Team.Create|Group.ReadWrite.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;description
+</td>
+<td>
+Optional team description.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;displayName
+</td>
+<td>
+Team display name.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;ownerUserIdsJson
+</td>
+<td>
+Optional JSON array of owner user ids or UPNs.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;templateName
+</td>
+<td>
+Teams template name (standard by default).
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;visibility
+</td>
+<td>
+Team visibility value Private or Public.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>CreateTeamChannel</b> : Creates a channel in an existing Microsoft Teams team</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") CreateTeamChannel
+
+Creates a channel in an existing Microsoft Teams team. (Graph permissions Channel.Create|Channel.ReadWrite.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;description
+</td>
+<td>
+Optional channel description.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;displayName
+</td>
+<td>
+Channel display name.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;membershipType
+</td>
+<td>
+Channel membership type standard, private or shared.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target Teams team identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>FindMeetingEvent</b> : Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") FindMeetingEvent
+
+Finds meeting events by event id, iCalUId, transactionId and optional metadata extension values. (Graph permissions Calendars.Read|Calendars.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
 </td>
 </tr>
 <tr>
@@ -603,7 +963,7 @@ Optional start datetime for list-based lookup (ISO-8601), required with windowEn
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") GetMeetingEvent
 
-Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension.
+Retrieves a Teams/Outlook meeting event with attendees, slot details and optional custom metadata extension. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -637,7 +997,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -756,12 +1116,12 @@ Azure Entra tenant id used for app-only token acquisition.
 
 </p></blockquote></details>
 
-<details><summary><b>ListMeetingEvents</b> : Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window</summary><blockquote><p>
+<details><summary><b>GetMeetingRecording</b> : Retrieves one Teams meeting recording metadata entry</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListMeetingEvents
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") GetMeetingRecording
 
-Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window.
+Retrieves one Teams meeting recording metadata entry. (Graph permissions OnlineMeetingRecording.Read.All)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -795,7 +1155,295 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;onlineMeetingId
+</td>
+<td>
+Target online meeting identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;recordingId
+</td>
+<td>
+Target meeting recording identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+User id or UPN owning the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>GetMeetingTranscripts</b> : Lists transcripts for a Teams online meeting</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") GetMeetingTranscripts
+
+Lists transcripts for a Teams online meeting. (Graph permissions OnlineMeetingTranscript.Read.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;onlineMeetingId
+</td>
+<td>
+Target online meeting identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;top
+</td>
+<td>
+Maximum number of transcripts returned.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+User id or UPN owning the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>GetOnlineMeetingByJoinUrl</b> : Retrieves an online meeting by its Teams joinWebUrl</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") GetOnlineMeetingByJoinUrl
+
+Retrieves an online meeting by its Teams joinWebUrl. (Graph permissions OnlineMeetings.Read|OnlineMeetings.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;joinWebUrl
+</td>
+<td>
+Teams meeting join URL used for lookup.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target organizer mailbox (user id or UPN) that owns the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>GetUserPresence</b> : Retrieves real-time Teams presence for a user</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") GetUserPresence
+
+Retrieves real-time Teams presence for a user. (Graph permissions Presence.Read.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target user id or UPN for presence lookup.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>ListMeetingEvents</b> : Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListMeetingEvents
+
+Lists Outlook meeting events for an organizer mailbox, optionally scoped by a calendar window. (Graph permissions Calendars.Read|Calendars.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
 </td>
 </tr>
 <tr>
@@ -935,7 +1583,7 @@ Optional start datetime for calendarView listing (ISO-8601), requires windowEndI
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListMeetingInstances
 
-Lists recurring meeting instances for a series master event in a specific time window.
+Lists recurring meeting instances for a series master event in a specific time window. (Graph permissions Calendars.Read|Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -969,7 +1617,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1064,12 +1712,230 @@ Start datetime of the instances lookup window (ISO-8601).
 
 </p></blockquote></details>
 
+<details><summary><b>ListMeetingRecordings</b> : Lists recordings for a Teams online meeting</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListMeetingRecordings
+
+Lists recordings for a Teams online meeting. (Graph permissions OnlineMeetingRecording.Read.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;onlineMeetingId
+</td>
+<td>
+Target online meeting identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;top
+</td>
+<td>
+Maximum number of recordings returned.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+User id or UPN owning the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>ListTeamChannels</b> : Lists channels for a Microsoft Teams team</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListTeamChannels
+
+Lists channels for a Microsoft Teams team. (Graph permissions Channel.ReadBasic.All|Channel.Read.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target Teams team identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;top
+</td>
+<td>
+Maximum number of channels returned.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>ListUserChats</b> : Lists Teams chats for a target user mailbox</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ListUserChats
+
+Lists Teams chats for a target user mailbox. (Graph permissions Chat.Read|Chat.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;top
+</td>
+<td>
+Maximum number of chats returned per request.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target user mailbox (user id or UPN) whose chats must be listed.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
 <details><summary><b>PlanAndCreateMeeting</b> : Plans an available slot and creates an Outlook/Teams meeting event in one backend call</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") PlanAndCreateMeeting
 
-Plans an available slot and creates an Outlook/Teams meeting event in one backend call.
+Plans an available slot and creates an Outlook/Teams meeting event in one backend call. (Graph permissions Calendars.ReadWrite|freeBusy)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1119,7 +1985,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1286,12 +2152,12 @@ Time zone used for planning window and created meeting slot values.
 
 </p></blockquote></details>
 
-<details><summary><b>RenewMeetingSubscription</b> : Renews an existing Microsoft Graph meeting subscription expiration datetime</summary><blockquote><p>
+<details><summary><b>RemoveTeamMember</b> : Removes a member from a Microsoft Teams team</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") RenewMeetingSubscription
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") RemoveTeamMember
 
-Renews an existing Microsoft Graph meeting subscription expiration datetime.
+Removes a member from a Microsoft Teams team. (Graph permissions TeamMember.ReadWrite.All|Group.ReadWrite.All)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1325,7 +2191,77 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;memberId
+</td>
+<td>
+Team member identifier to remove.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target Teams team identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>RenewMeetingSubscription</b> : Renews an existing Microsoft Graph meeting subscription expiration datetime</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") RenewMeetingSubscription
+
+Renews an existing Microsoft Graph meeting subscription expiration datetime. (Graph permissions Subscriptions.ReadWrite.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
 </td>
 </tr>
 <tr>
@@ -1361,7 +2297,7 @@ Azure Entra tenant id used for app-only token acquisition.
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") RespondToMeetingEvent
 
-Sends attendee response (accept, decline, tentative) for a meeting event.
+Sends attendee response (accept, decline, tentative) for a meeting event. (Graph permissions Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1395,7 +2331,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1450,12 +2386,310 @@ Target attendee mailbox (user id or UPN) sending the meeting response.
 
 </p></blockquote></details>
 
+<details><summary><b>SendChannelMessage</b> : Sends a Teams message to a team channel</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") SendChannelMessage
+
+Sends a Teams message to a team channel. (Graph permissions ChannelMessage.Send|ChannelMessage.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;channelId
+</td>
+<td>
+Target Teams channel identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;contentType
+</td>
+<td>
+Message content type, usually html or text.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;importance
+</td>
+<td>
+Optional message importance value normal, high or urgent.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;message
+</td>
+<td>
+Message content to send to the channel.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;subject
+</td>
+<td>
+Optional message subject.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target Teams team identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>SendChatMessage</b> : Sends a Teams message to a chat thread</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") SendChatMessage
+
+Sends a Teams message to a chat thread. (Graph permissions ChatMessage.Send|Chat.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;chatId
+</td>
+<td>
+Target Teams chat identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;contentType
+</td>
+<td>
+Message content type, usually html or text.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;importance
+</td>
+<td>
+Optional message importance value normal, high or urgent.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;message
+</td>
+<td>
+Message content to send to the chat.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;subject
+</td>
+<td>
+Optional message subject.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>ShareDriveItemToChatOrChannel</b> : Shares a Drive item link by posting it into a Teams chat or channel</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ShareDriveItemToChatOrChannel
+
+Shares a Drive item link by posting it into a Teams chat or channel. (Graph permissions ChatMessage.Send|ChannelMessage.Send)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;channelId
+</td>
+<td>
+Target channel id when targetType is channel.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;chatId
+</td>
+<td>
+Target chat id when targetType is chat.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;driveItemWebUrl
+</td>
+<td>
+Shareable Drive item web URL.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;message
+</td>
+<td>
+Optional message prefix posted before the link.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;targetType
+</td>
+<td>
+Share target type chat or channel.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;teamId
+</td>
+<td>
+Target team id when targetType is channel.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
 <details><summary><b>SubscribeMeetingChanges</b> : Creates a Microsoft Graph webhook subscription for meeting events</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") SubscribeMeetingChanges
 
-Creates a Microsoft Graph webhook subscription for meeting events.
+Creates a Microsoft Graph webhook subscription for meeting events. (Graph permissions Subscriptions.ReadWrite.All)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1497,7 +2731,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1589,7 +2823,7 @@ Azure Entra tenant id used for app-only token acquisition.
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") SuggestMeetingSlots
 
-Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule.
+Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule. (Graph permissions Calendars.Read.Shared|Calendars.ReadWrite|freeBusy)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1631,7 +2865,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1715,7 +2949,7 @@ Search window start datetime in ISO-8601 format.
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") UnsubscribeMeetingChanges
 
-Deletes an existing Microsoft Graph meeting subscription.
+Deletes an existing Microsoft Graph meeting subscription. (Graph permissions Subscriptions.ReadWrite.All)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1749,7 +2983,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1777,7 +3011,7 @@ Azure Entra tenant id used for app-only token acquisition.
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") UpdateMeetingEvent
 
-Updates an existing Outlook/Teams meeting event.
+Updates an existing Outlook/Teams meeting event. (Graph permissions Calendars.ReadWrite)
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -1827,7 +3061,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-Azure Entra application client secret used for app-only token acquisition.
+
 </td>
 </tr>
 <tr>
@@ -1956,6 +3190,248 @@ Azure Entra tenant id used for app-only token acquisition.
 </td>
 <td>
 Time zone used for updated start and end values.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>UpdateOnlineMeetingSettings</b> : Updates online meeting settings using a JSON patch payload</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") UpdateOnlineMeetingSettings
+
+Updates online meeting settings using a JSON patch payload. (Graph permissions OnlineMeetings.ReadWrite)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;onlineMeetingId
+</td>
+<td>
+Target online meeting identifier.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;settingsJson
+</td>
+<td>
+JSON object containing mutable online meeting properties to patch.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target organizer mailbox (user id or UPN) that owns the online meeting.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>UploadMeetingAttachment</b> : Uploads a binary attachment into the user OneDrive for later sharing in Teams</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") UploadMeetingAttachment
+
+Uploads a binary attachment into the user OneDrive for later sharing in Teams. (Graph permissions Files.ReadWrite.All)
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;contentType
+</td>
+<td>
+MIME type sent to Graph for the uploaded content.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;fileContentBase64
+</td>
+<td>
+Base64-encoded file bytes for upload.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;fileName
+</td>
+<td>
+File name to create or replace in OneDrive.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;parentPath
+</td>
+<td>
+OneDrive folder path under root where file is uploaded.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+Target user id or UPN owning the OneDrive destination.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>ValidateGraphPermissions</b> : Validates Graph permissions by probing key Teams/Outlook endpoints</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ValidateGraphPermissions
+
+Validates Graph permissions by probing key Teams/Outlook endpoints. (Graph permissions Mixed (see checks array))
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;accessToken
+</td>
+<td>
+Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;checksJson
+</td>
+<td>
+Optional JSON array of checks names presence,chats,calendar,onlineMeetings,joinedTeams,drive.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientId
+</td>
+<td>
+Azure Entra application client id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;tenantId
+</td>
+<td>
+Azure Entra tenant id used for app-only token acquisition.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;userId
+</td>
+<td>
+User id or UPN used as target for permission probes.
 </td>
 </tr>
 </table>

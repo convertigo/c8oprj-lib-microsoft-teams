@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Updates an existing Outlook/Teams meeting event.
+comment: Updates an existing Outlook/Teams meeting event. (Graph permissions Calendars.ReadWrite)
 ↓inputVars [steps.InputVariablesStep-1772534772396]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteUpdateMeeting [steps.SimpleStep-1772535594594]: 
@@ -230,7 +230,6 @@ comment: Updates an existing Outlook/Teams meeting event.
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772535595162]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

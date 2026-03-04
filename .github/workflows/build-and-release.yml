@@ -5,14 +5,10 @@
 # This sample assumes you have declared the following Encrypted Secrets
 # https://docs.github.com/en/actions/reference/encrypted-secrets
 #
-# C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
-#             and the backend project will be deployed, like https://<myhost>/convertigo
-# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
-# C8O_PASSWORD: Convertigo server password for the C8O_USER
-#
-# C8O_SERVER_PROD: override C8O_SERVER for tags
-# C8O_USER_PROD: override C8O_USER for tags
-# C8O_PASSWORD_PROD: override C8O_PASSWORD for tags
+# C8O_SERVEUR_TEST_CONVERTIGO: Convertigo server endpoint
+#   example: https://<myhost>/convertigo
+# C8O_USER_TEST_CONVERTIGO: Convertigo admin user or PROJECTS_CONFIG user
+# C8O_PASSWORD_TEST_CONVERTIGO: password for C8O_USER_TEST_CONVERTIGO
 #
 # Discover all tasks and -Pconvertigo options in your project build.gradle file.
 
@@ -61,27 +57,30 @@ jobs:
 
       - name: Convertigo generate application code
         env:
-          C8O_SERVER: ${{ github.ref_type == 'tag' && secrets.C8O_SERVER_PROD || secrets.C8O_SERVER }}
+          C8O_SERVER: ${{ secrets.C8O_SERVEUR_TEST_CONVERTIGO }}
         run: |
           echo "Generate Mobile Builder App" && \
           sh gradlew --stacktrace --info generateMobileBuilder export -x compileMobileBuilder \
             -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER
 
-      - name: Build and deploy based on branch or tag
+      - name: Build and deploy on every push
         env:
-          C8O_SERVER: ${{ github.ref_type == 'tag' && secrets.C8O_SERVER_PROD || secrets.C8O_SERVER }}
-          C8O_USER: ${{ github.ref_type == 'tag' && secrets.C8O_USER_PROD || secrets.C8O_USER }}
-          C8O_PASSWORD: ${{ github.ref_type == 'tag' && secrets.C8O_PASSWORD_PROD || secrets.C8O_PASSWORD }}
+          C8O_SERVER: ${{ secrets.C8O_SERVEUR_TEST_CONVERTIGO }}
+          C8O_USER: ${{ secrets.C8O_USER_TEST_CONVERTIGO }}
+          C8O_PASSWORD: ${{ secrets.C8O_PASSWORD_TEST_CONVERTIGO }}
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "Deploying to production server $C8O_SERVER";
-          else
-            echo "Deploying to development server $C8O_SERVER";
-          fi
+          echo "Deploying ref ${{ github.ref }} to server $C8O_SERVER"
           sh gradlew --stacktrace --info car deploy -x generateMobileBuilder \
             -Pconvertigo.deploy.server=$C8O_SERVER \
             -Pconvertigo.deploy.user=$C8O_USER \
             -Pconvertigo.deploy.password=$C8O_PASSWORD
+
+      - name: Run post-deploy test plan
+        env:
+          TEST_SERVER_ENDPOINT: ${{ secrets.C8O_SERVEUR_TEST_CONVERTIGO }}
+          C8O_PROJECT: Lib_Microsoft_Teams
+        run: |
+          python3 ./scripts/run_testcases.py
 
       - name: Save application project
         uses: actions/upload-artifact@v4

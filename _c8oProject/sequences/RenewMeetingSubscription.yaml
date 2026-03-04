@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Renews an existing Microsoft Graph meeting subscription expiration datetime.
+comment: Renews an existing Microsoft Graph meeting subscription expiration datetime. (Graph permissions Subscriptions.ReadWrite.All)
 ↓inputVars [steps.InputVariablesStep-1772553006001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteRenewMeetingSubscription [steps.SimpleStep-1772553006002]: 
@@ -68,7 +68,6 @@ comment: Renews an existing Microsoft Graph meeting subscription expiration date
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772553006009]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

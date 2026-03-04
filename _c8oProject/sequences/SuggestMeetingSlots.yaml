@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule.
+comment: Suggests available meeting slots using Microsoft Graph findMeetingTimes/getSchedule. (Graph permissions Calendars.Read.Shared|Calendars.ReadWrite|freeBusy)
 ↓inputVars [steps.InputVariablesStep-1772534734075]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteSuggestSlots [steps.SimpleStep-1772535592221]: 
@@ -196,7 +196,6 @@ comment: Suggests available meeting slots using Microsoft Graph findMeetingTimes
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772535592611]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

@@ -203,28 +203,73 @@ ${lineBreak}
 <#if locale == "US">
 	<@header toc=toc anchors=anchors heading="##" text="Configuration Symbols" />
 These symbols can be set at project level and reused by all sequences.
+In a standard deployment, they are configured once on the server and not passed on each request.
 
 <table>
 <tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.tenantId}</#noparse></code></td><td>Yes (app-only)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientId}</#noparse></code></td><td>Yes (app-only)</td><td>No</td><td>Application (client) ID.</td></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientSecret.secret}</#noparse></code></td><td>Yes (app-only)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.tenantId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientSecret.secret}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
 </table>
 
 	<@header toc=toc anchors=anchors heading="##" text="Authentication Model" />
-- Delegated mode: pass `accessToken`; tenant/client/secret are ignored.
-- Application mode: leave `accessToken` empty and provide tenant/client/secret.
+- Default mode (recommended for backend use): rely on server-side symbols (`tenantId`, `clientId`, `clientSecret`) and do not pass credentials in calls.
+- Delegated override: pass `accessToken`; tenant/client/secret are ignored.
+- Application override: pass tenant/client/secret explicitly in request variables.
 - Sequence responses expose `tokenMode` (`delegated` or `application`) for diagnostics.
 
+	<@header toc=toc anchors=anchors heading="##" text="Test Script (Endpoint-Only)" />
+The logical test-plan script supports endpoint-only execution for the common case where Graph symbols are already configured on the target Convertigo server.
+
+Minimal usage:
+```bash
+TEST_SERVER_ENDPOINT=http://localhost:18080 python3 ./scripts/run_testcases.py
+```
+
+Behavior:
+- The script logs in automatically by default through `ClientSDKtesting/login`.
+- It reuses returned `JSESSIONID` and `X-Convertigo-Authenticated` for authenticated sequences.
+- No `AZ_TENANT_ID`, `AZ_CLIENT_ID`, or `AZ_CLIENT_SECRET` is required in this mode.
+
+Optional overrides:
+- `C8O_LOGIN_PROJECT` and `C8O_LOGIN_SEQUENCE` to target another login sequence.
+- `C8O_LOGIN_EXTRA_FORM` when the login sequence expects additional variables (`k1=v1&k2=v2`).
+- `ACCESS_TOKEN` or `AZ_*` variables only when you want to bypass server-side symbols for a specific run.
+
 	<@header toc=toc anchors=anchors heading="##" text="Required Azure Permissions" />
-Grant application permissions (or delegated equivalents) to Microsoft Graph:
+Grant Microsoft Graph permissions, then click `Grant admin consent` in Azure.
 
 <table>
-<tr><th>Functional scope</th><th>Recommended permissions</th></tr>
-<tr><td>Create/update/cancel meeting events</td><td><code>Calendars.ReadWrite</code></td></tr>
-<tr><td>Read meeting events</td><td><code>Calendars.Read</code> or <code>Calendars.ReadWrite</code></td></tr>
-<tr><td>Find availability / suggested slots</td><td><code>Calendars.Read.Shared</code> and/or <code>Calendars.ReadWrite</code> (free/busy usage)</td></tr>
+<tr><th>Functional scope</th><th>Sequences</th><th>Graph permissions (Application)</th><th>Notes</th></tr>
+<tr><td>Meeting CRUD</td><td><code>CreateMeetingEvent</code>, <code>GetMeetingEvent</code>, <code>FindMeetingEvent</code>, <code>UpdateMeetingEvent</code>, <code>CancelMeetingEvent</code>, <code>AttachMeetingCustomMetadata</code>, <code>ListMeetingEvents</code>, <code>ListMeetingInstances</code>, <code>PlanAndCreateMeeting</code></td><td><code>Calendars.ReadWrite</code> (+ optional <code>Calendars.Read</code>)</td><td><code>ListMeetingInstances</code> requires a recurring series master id.</td></tr>
+<tr><td>Availability and slot suggestion</td><td><code>SuggestMeetingSlots</code>, <code>PlanAndCreateMeeting</code></td><td><code>Calendars.ReadWrite</code> (or <code>Calendars.Read.Shared</code> for delegated scenarios)</td><td>Uses free/busy APIs under Graph calendar permissions.</td></tr>
+<tr><td>Online meetings</td><td><code>CreateOnlineMeeting</code>, <code>GetOnlineMeetingByJoinUrl</code>, <code>UpdateOnlineMeetingSettings</code></td><td><code>OnlineMeetings.ReadWrite.All</code> (+ optional <code>OnlineMeetings.Read.All</code>)</td><td>For app-only access, tenant policy may be required (Application Access Policy).</td></tr>
+<tr><td>Recordings and transcripts</td><td><code>ListMeetingRecordings</code>, <code>GetMeetingRecording</code>, <code>GetMeetingTranscripts</code></td><td><code>OnlineMeetingRecording.Read.All</code>, <code>OnlineMeetingTranscript.Read.All</code></td><td>Availability depends on tenant compliance and meeting policy.</td></tr>
+<tr><td>Team lifecycle and members</td><td><code>CreateTeam</code>, <code>CreateTeamChannel</code>, <code>ListTeamChannels</code>, <code>AddTeamMember</code>, <code>RemoveTeamMember</code></td><td><code>Team.Create</code>, <code>Group.ReadWrite.All</code>, <code>TeamMember.ReadWrite.All</code>, <code>Channel.Create</code>, <code>Channel.ReadBasic.All</code>, <code>ChannelSettings.Read.All</code></td><td>Some tenant configs also require <code>User.Read.All</code> and/or <code>Directory.Read.All</code>.</td></tr>
+<tr><td>Chats and channel messages</td><td><code>ListUserChats</code>, <code>SendChatMessage</code>, <code>SendChannelMessage</code>, <code>ShareDriveItemToChatOrChannel</code></td><td><code>Chat.Read.All</code> (read), message send in app-only is restricted</td><td>Normal message send is usually delegated (<code>ChatMessage.Send</code>, <code>ChannelMessage.Send</code>). App-only send is limited to migration scenarios (<code>Teamwork.Migrate.All</code>).</td></tr>
+<tr><td>Presence</td><td><code>GetUserPresence</code>, <code>ValidateGraphPermissions</code> (presence check)</td><td><code>Presence.Read.All</code></td><td>Presence endpoints commonly return 403 when permission is missing.</td></tr>
+<tr><td>Drive upload</td><td><code>UploadMeetingAttachment</code>, <code>ShareDriveItemToChatOrChannel</code></td><td><code>Files.ReadWrite.All</code></td><td>Mailbox/user must have OneDrive provisioned and accessible.</td></tr>
+<tr><td>Webhooks</td><td><code>SubscribeMeetingChanges</code>, <code>RenewMeetingSubscription</code>, <code>UnsubscribeMeetingChanges</code></td><td><code>Subscriptions.ReadWrite.All</code></td><td><code>notificationUrl</code> must be publicly reachable and answer Graph validation challenge.</td></tr>
+<tr><td>Diagnostic probe</td><td><code>ValidateGraphPermissions</code></td><td>Depends on enabled checks: <code>Calendars.Read</code>, <code>OnlineMeetings.Read.All</code>, <code>Team.ReadBasic.All</code>, <code>Files.Read</code>, <code>Presence.Read.All</code>, <code>Chat.Read.All</code></td><td>Use it to quickly identify missing grants per scope.</td></tr>
 </table>
+
+Recommended baseline for app-only scenarios:
+- <code>Calendars.ReadWrite</code>
+- <code>OnlineMeetings.ReadWrite.All</code>
+- <code>OnlineMeetingRecording.Read.All</code>
+- <code>OnlineMeetingTranscript.Read.All</code>
+- <code>Team.Create</code>
+- <code>Group.ReadWrite.All</code>
+- <code>TeamMember.ReadWrite.All</code>
+- <code>Channel.Create</code>
+- <code>Channel.ReadBasic.All</code>
+- <code>ChannelSettings.Read.All</code>
+- <code>Chat.Read.All</code>
+- <code>Presence.Read.All</code>
+- <code>Files.ReadWrite.All</code>
+- <code>Subscriptions.ReadWrite.All</code>
+- <code>User.Read.All</code>
+- <code>Directory.Read.All</code>
 
 	<@header toc=toc anchors=anchors heading="##" text="Known Limitations" />
 - Some events/mailboxes do not support listing event extensions (`/events/{id}/extensions`) and Graph returns: `The OData request is not supported.`

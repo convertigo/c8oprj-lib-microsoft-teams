@@ -1,0 +1,99 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Retrieves an online meeting by its Teams joinWebUrl. (Graph permissions OnlineMeetings.Read|OnlineMeetings.ReadWrite)
+↓inputVars [steps.InputVariablesStep-1772640077037]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteGetOnlineMeetingByJoinUrl [steps.SimpleStep-1772640077070]: 
+  comment: Calls Microsoft Graph onlineMeetings endpoint with OData filter on JoinWebUrl.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "get_online_meeting_by_join_url";
+    var requiredPermission = "OnlineMeetings.Read|OnlineMeetings.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var joinUrl = gm_require("joinWebUrl", joinWebUrl);
+    	var filterValue = "JoinWebUrl eq ''" + gm_odataEscapeString(joinUrl) + "''";
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var result = gm_graphHttp(
+    		"GET",
+    		tokenInfo.token,
+    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings",
+    		{
+    			"$filter": filterValue,
+    			"$top": "1"
+    		},
+    		null,
+    		null
+    	);
+    	
+    	var items = gm_graphPayloadArray(result);
+    	if (items.length === 0) {
+    		throw new java.lang.RuntimeException("No online meeting found for provided joinWebUrl");
+    	}
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		joinWebUrl: joinUrl,
+    		onlineMeeting: items[0]
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640077109]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772640077180]: 
+  comment: Target organizer mailbox (user id or UPN) that owns the online meeting.
+  description: Organizer user id or principal name
+  required: true
+↓joinWebUrl [variables.RequestableVariable-1772640077236]: 
+  comment: Teams meeting join URL used for lookup.
+  description: Teams join web URL
+  required: true
+↓accessToken [variables.RequestableVariable-1772640077309]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640077381]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640077461]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640077557]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_GetOnlineMeetingByJoinUrl_Nominal [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772641908697]: 
+    value: user@contoso.com
+  ↓joinWebUrl [variables.TestCaseVariable-1772641908698]: 
+    value: https://teams.microsoft.com/l/meetup-join/19%3ameeting_dummy%40thread.v2/0?context=%7b%7d
+  ↓accessToken [variables.TestCaseVariable-1772641908699]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908700]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908701]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908702]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

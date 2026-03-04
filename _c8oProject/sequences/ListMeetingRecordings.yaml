@@ -1,0 +1,107 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Lists recordings for a Teams online meeting. (Graph permissions OnlineMeetingRecording.Read.All)
+↓inputVars [steps.InputVariablesStep-1772640079211]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteListMeetingRecordings [steps.SimpleStep-1772640079242]: 
+  comment: Calls Microsoft Graph onlineMeeting recordings endpoint.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "list_meeting_recordings";
+    var requiredPermission = "OnlineMeetingRecording.Read.All";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var targetMeetingId = gm_require("onlineMeetingId", onlineMeetingId);
+    	var pageTop = gm_parseInteger("top", top, 25);
+    	if (pageTop < 1) {
+    		pageTop = 1;
+    	}
+    	if (pageTop > 100) {
+    		pageTop = 100;
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var listed = gm_graphHttp(
+    		"GET",
+    		tokenInfo.token,
+    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId) + "/recordings",
+    		{ "$top": String(pageTop) },
+    		null,
+    		null
+    	);
+    	
+    	var payload = listed.data === null || listed.data === undefined ? {} : listed.data;
+    	var values = gm_graphPayloadArray(listed);
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		onlineMeetingId: targetMeetingId,
+    		count: values.length,
+    		nextLink: gm_safeString(payload["@odata.nextLink"]),
+    		items: values
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640079283]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772640079343]: 
+  comment: User id or UPN owning the online meeting.
+  description: Organizer user id or principal name
+  required: true
+↓onlineMeetingId [variables.RequestableVariable-1772640079403]: 
+  comment: Target online meeting identifier.
+  description: Online meeting id
+  required: true
+↓top [variables.RequestableVariable-1772640079477]: 
+  comment: Maximum number of recordings returned.
+  description: Page size
+  value: 25.0
+↓accessToken [variables.RequestableVariable-1772640079550]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640079629]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640079722]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640079827]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_ListMeetingRecordings_Nominal [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772641908708]: 
+    value: user@contoso.com
+  ↓onlineMeetingId [variables.TestCaseVariable-1772641908709]: 
+    value: dummy-online-meeting-id
+  ↓top [variables.TestCaseVariable-1772641908710]: 
+    value: 1
+  ↓accessToken [variables.TestCaseVariable-1772641908711]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908712]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908713]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908714]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

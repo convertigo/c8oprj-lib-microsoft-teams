@@ -1,0 +1,116 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Uploads a binary attachment into the user OneDrive for later sharing in Teams. (Graph permissions Files.ReadWrite.All)
+↓inputVars [steps.InputVariablesStep-1772640091378]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteUploadMeetingAttachment [steps.SimpleStep-1772640091415]: 
+  comment: Calls Microsoft Graph Drive simple upload endpoint using base64 content.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "upload_meeting_attachment";
+    var requiredPermission = "Files.ReadWrite.All";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var targetFileName = gm_require("fileName", fileName);
+    	var parent = gm_defaultString(parentPath, "/");
+    	if (parent.charAt(0) !== "/") {
+    		parent = "/" + parent;
+    	}
+    	while (parent.length > 1 && parent.charAt(parent.length - 1) === "/") {
+    		parent = parent.substring(0, parent.length - 1);
+    	}
+    	var fullPath = (parent === "/" ? "" : parent) + "/" + targetFileName;
+    	var endpoint = "/users/" + gm_urlEncode(targetUser) + "/drive/root:" + fullPath + ":/content";
+    	var bytes = gm_base64ToBytes(fileContentBase64);
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var uploaded = gm_graphUploadBytes(tokenInfo.token, endpoint, null, bytes, gm_defaultString(contentType, "application/octet-stream"), null);
+    	var item = uploaded.data === null || uploaded.data === undefined ? {} : uploaded.data;
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		fileName: targetFileName,
+    		driveItemId: gm_safeString(item.id),
+    		webUrl: gm_safeString(item.webUrl),
+    		size: item.size,
+    		eTag: gm_safeString(item.eTag),
+    		raw: item
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640091457]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772640091517]: 
+  comment: Target user id or UPN owning the OneDrive destination.
+  description: User id or principal name
+  required: true
+↓fileName [variables.RequestableVariable-1772640091577]: 
+  comment: File name to create or replace in OneDrive.
+  description: Attachment file name
+  required: true
+↓fileContentBase64 [variables.RequestableVariable-1772640091650]: 
+  comment: Base64-encoded file bytes for upload.
+  description: File content base64
+  required: true
+↓parentPath [variables.RequestableVariable-1772640091722]: 
+  comment: OneDrive folder path under root where file is uploaded.
+  description: Destination path under drive root
+  value: /
+↓contentType [variables.RequestableVariable-1772640091799]: 
+  comment: MIME type sent to Graph for the uploaded content.
+  description: Uploaded content MIME type
+  value: application/octet-stream
+↓accessToken [variables.RequestableVariable-1772640091895]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640092000]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640092102]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640092213]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_UploadMeetingAttachment_Nominal [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772641908769]: 
+    value: user@contoso.com
+  ↓fileName [variables.TestCaseVariable-1772641908770]: 
+    value: convertigo-smoke.txt
+  ↓fileContentBase64 [variables.TestCaseVariable-1772641908771]: 
+    value: Y29udmVydGlnbyBzbW9rZQ==
+  ↓parentPath [variables.TestCaseVariable-1772641908772]: 
+    value: /
+  ↓contentType [variables.TestCaseVariable-1772641908773]: 
+    value: text/plain
+  ↓accessToken [variables.TestCaseVariable-1772641908774]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908775]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908776]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908777]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

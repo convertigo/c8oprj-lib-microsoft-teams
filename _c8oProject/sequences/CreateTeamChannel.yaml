@@ -1,0 +1,103 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Creates a channel in an existing Microsoft Teams team. (Graph permissions Channel.Create|Channel.ReadWrite.All)
+↓inputVars [steps.InputVariablesStep-1772640072552]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteCreateTeamChannel [steps.SimpleStep-1772640072584]: 
+  comment: Calls Microsoft Graph channels endpoint to create a team channel.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "create_team_channel";
+    var requiredPermission = "Channel.Create|Channel.ReadWrite.All";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetTeamId = gm_require("teamId", teamId);
+    	var channelName = gm_require("displayName", displayName);
+    	var payload = {
+    		displayName: channelName,
+    		description: gm_safeString(description),
+    		membershipType: gm_defaultString(membershipType, "standard")
+    	};
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var created = gm_graphHttp("POST", tokenInfo.token, "/teams/" + gm_urlEncode(targetTeamId) + "/channels", null, payload, null);
+    	var data = created.data === null || created.data === undefined ? {} : created.data;
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		teamId: targetTeamId,
+    		channelId: gm_safeString(data.id),
+    		displayName: gm_safeString(data.displayName),
+    		membershipType: gm_safeString(data.membershipType),
+    		webUrl: gm_safeString(data.webUrl),
+    		raw: data
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640072631]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓teamId [variables.RequestableVariable-1772640072681]: 
+  comment: Target Teams team identifier.
+  description: Teams team id
+  required: true
+↓displayName [variables.RequestableVariable-1772640072741]: 
+  comment: Channel display name.
+  description: Channel display name
+  required: true
+↓description [variables.RequestableVariable-1772640072825]: 
+  comment: Optional channel description.
+  description: Channel description
+↓membershipType [variables.RequestableVariable-1772640072913]: 
+  comment: Channel membership type standard, private or shared.
+  description: Channel membership type
+  value: standard
+↓accessToken [variables.RequestableVariable-1772640073003]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640073201]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640073312]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640073449]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_CreateTeamChannel_Nominal [core.TestCase]: 
+  ↓teamId [variables.TestCaseVariable-1772641908675]: 
+    value: 00000000-0000-0000-0000-000000000000
+  ↓displayName [variables.TestCaseVariable-1772641908676]: 
+    value: general-smoke
+  ↓description [variables.TestCaseVariable-1772641908677]: 
+    value: Channel created by test case
+  ↓membershipType [variables.TestCaseVariable-1772641908678]: 
+    value: standard
+  ↓accessToken [variables.TestCaseVariable-1772641908679]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908680]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908681]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908682]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}

@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: true
-comment: Creates a Microsoft Graph webhook subscription for meeting events.
+comment: Creates a Microsoft Graph webhook subscription for meeting events. (Graph permissions Subscriptions.ReadWrite.All)
 ↓inputVars [steps.InputVariablesStep-1772553005001]: 
   comment: Exposes request inputs in XML for debugging and source mapping.
 ↓ExecuteSubscribeMeetingChanges [steps.SimpleStep-1772553005002]: 
@@ -117,7 +117,6 @@ comment: Creates a Microsoft Graph webhook subscription for meeting events.
   description: Client id for app-only token
   value: ${Lib_Microsoft_Teams.clientId}
 ↓clientSecret [variables.RequestableVariable-1772553005017]: 
-  comment: Azure Entra application client secret used for app-only token acquisition.
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true

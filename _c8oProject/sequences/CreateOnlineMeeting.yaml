@@ -1,0 +1,145 @@
+accessibility: Hidden
+authenticatedContextRequired: true
+comment: Creates a Microsoft Teams online meeting for a user mailbox. (Graph permissions OnlineMeetings.ReadWrite)
+↓inputVars [steps.InputVariablesStep-1772640068863]: 
+  comment: Exposes request inputs in XML for debugging and source mapping.
+↓ExecuteCreateOnlineMeeting [steps.SimpleStep-1772640068899]: 
+  comment: Calls Microsoft Graph onlineMeetings endpoint to create a Teams meeting.
+  expression: |
+    'include("js/graph_meetings.js");
+    
+    var graphOperation = "create_online_meeting";
+    var requiredPermission = "OnlineMeetings.ReadWrite";
+    var tokenMode = "delegated_or_application";
+    response = null;
+    
+    try {
+    	var targetUser = gm_require("userId", userId);
+    	var subjectValue = gm_require("subject", subject);
+    	var startValue = gm_require("startDateTimeIso", startDateTimeIso);
+    	var endValue = gm_require("endDateTimeIso", endDateTimeIso);
+    	
+    	var payload = {
+    		subject: subjectValue,
+    		startDateTime: startValue,
+    		endDateTime: endValue
+    	};
+    	
+    	if (!gm_isBlank(externalId)) {
+    		payload.externalId = String(externalId);
+    	}
+    	
+    	if (!gm_isBlank(participantsJson)) {
+    		var participants = gm_parseJsonArrayInput("participantsJson", participantsJson, true);
+    		var attendees = [];
+    		var i;
+    		for (i = 0; i < participants.length; i++) {
+    			var participant = participants[i];
+    			if (!participant) {
+    				continue;
+    			}
+    			var upn = participant.upn || participant.email || participant.userPrincipalName;
+    			if (gm_isBlank(upn)) {
+    				continue;
+    			}
+    			var attendee = { upn: String(upn) };
+    			if (!gm_isBlank(participant.role)) {
+    				attendee.role = String(participant.role);
+    			}
+    			attendees.push(attendee);
+    		}
+    		if (attendees.length > 0) {
+    			payload.participants = { attendees: attendees };
+    		}
+    	}
+    	
+    	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
+    	tokenMode = tokenInfo.mode;
+    	var created = gm_graphHttp("POST", tokenInfo.token, "/users/" + gm_urlEncode(targetUser) + "/onlineMeetings", null, payload, null);
+    	var meeting = created.data === null || created.data === undefined ? {} : created.data;
+    	
+    	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
+    		userId: targetUser,
+    		onlineMeetingId: gm_safeString(meeting.id),
+    		subject: gm_safeString(meeting.subject),
+    		startDateTime: gm_safeString(meeting.startDateTime),
+    		endDateTime: gm_safeString(meeting.endDateTime),
+    		joinWebUrl: gm_safeString(meeting.joinWebUrl),
+    		joinInformation: meeting.joinInformation,
+    		raw: meeting
+    	});
+    } catch (e) {
+    	response = gm_responseError(graphOperation, tokenMode, requiredPermission, e);
+    }'
+↓response [steps.JsonToXmlStep-1772640068954]: 
+  comment: Converts the JS response object into XML output.
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: response
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: response
+↓userId [variables.RequestableVariable-1772640069017]: 
+  comment: Target organizer mailbox (user id or UPN) that owns the online meeting.
+  description: Organizer user id or principal name
+  required: true
+↓subject [variables.RequestableVariable-1772640069082]: 
+  comment: Online meeting subject displayed in Teams.
+  description: Online meeting subject
+  required: true
+↓startDateTimeIso [variables.RequestableVariable-1772640069161]: 
+  comment: Meeting start datetime in ISO-8601 format with timezone or offset.
+  description: Meeting start datetime ISO-8601
+  required: true
+↓endDateTimeIso [variables.RequestableVariable-1772640069241]: 
+  comment: Meeting end datetime in ISO-8601 format with timezone or offset.
+  description: Meeting end datetime ISO-8601
+  required: true
+↓participantsJson [variables.RequestableVariable-1772640069322]: 
+  comment: Optional JSON array of attendees [{upn|email,role}].
+  description: Optional attendees JSON array
+↓externalId [variables.RequestableVariable-1772640069417]: 
+  comment: Optional external business identifier for idempotent correlation.
+  description: Optional external id
+↓accessToken [variables.RequestableVariable-1772640069529]: 
+  comment: Optional delegated bearer token. If provided, tenant/client/secret are ignored.
+  description: Delegated Microsoft Graph access token
+↓tenantId [variables.RequestableVariable-1772640069635]: 
+  comment: Azure Entra tenant id used for app-only token acquisition.
+  description: Tenant id for app-only token
+  value: ${Lib_Microsoft_Teams.tenantId}
+↓clientId [variables.RequestableVariable-1772640069758]: 
+  comment: Azure Entra application client id used for app-only token acquisition.
+  description: Client id for app-only token
+  value: ${Lib_Microsoft_Teams.clientId}
+↓clientSecret [variables.RequestableVariable-1772640069880]: 
+  description: Client secret for app-only token
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+  visibility: '-1'
+↓TC_CreateOnlineMeeting_Nominal [core.TestCase]: 
+  ↓userId [variables.TestCaseVariable-1772641908656]: 
+    value: user@contoso.com
+  ↓subject [variables.TestCaseVariable-1772641908657]: 
+    value: Convertigo Online Meeting
+  ↓startDateTimeIso [variables.TestCaseVariable-1772641908658]: 
+    value: 2026-06-10T10:00:00
+  ↓endDateTimeIso [variables.TestCaseVariable-1772641908659]: 
+    value: 2026-06-10T10:30:00
+  ↓participantsJson [variables.TestCaseVariable-1772641908660]: 
+  ↓externalId [variables.TestCaseVariable-1772641908661]: 
+  ↓accessToken [variables.TestCaseVariable-1772641908662]: 
+  ↓tenantId [variables.TestCaseVariable-1772641908663]: 
+    value: ${Lib_Microsoft_Teams.tenantId}
+  ↓clientId [variables.TestCaseVariable-1772641908664]: 
+    value: ${Lib_Microsoft_Teams.clientId}
+  ↓clientSecret [variables.TestCaseVariable-1772641908665]: 
+    value: ${Lib_Microsoft_Teams.clientSecret.secret}
