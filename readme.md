@@ -1,7 +1,7 @@
 
 
 
-# Lib_Microsoft_Teams
+# lib_Microsoft_Teams
 
 Mashup Sequencer project
 
@@ -65,17 +65,17 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     Lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams.git:branch=8.0.0.0
+     lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams.git:branch=8.0.0.0
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     Lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams/archive/8.0.0.0.zip
+     lib_Microsoft_Teams=https://github.com/convertigo/c8oprj-lib-microsoft-teams/archive/8.0.0.0.zip
      ```
      </td></tr>
     </table>
-3. Click the `Finish` button. This will automatically import the __Lib_Microsoft_Teams__ project
+3. Click the `Finish` button. This will automatically import the __lib_Microsoft_Teams__ project
 
 
 ## Configuration Symbols

@@ -1,10 +1,10 @@
 ↑convertigo: 8.0.0.m006
-↓Lib_Microsoft_Teams [core.Project]: 
+↓lib_Microsoft_Teams [core.Project]: 
   comment: Mashup Sequencer project
   contextTimeout: 59
   corsOrigin: =Origin
   httpSessionTimeout: 60
-  version: 8.0.0.7
+  version: 8.0.0.8
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓AddTeamMember [sequences.GenericSequence]: 🗏 sequences/AddTeamMember.yaml
   ↓AttachMeetingCustomMetadata [sequences.GenericSequence]: 🗏 sequences/AttachMeetingCustomMetadata.yaml
