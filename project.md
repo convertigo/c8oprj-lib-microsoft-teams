@@ -1985,7 +1985,7 @@ Azure Entra application client id used for app-only token acquisition.
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;clientSecret
 </td>
 <td>
-
+Azure Entra application client secret used for app-only token acquisition.
 </td>
 </tr>
 <tr>

@@ -79,17 +79,17 @@ comment: Lists recordings for a Teams online meeting. (Graph permissions OnlineM
 ↓tenantId [variables.RequestableVariable-1772640079629]: 
   comment: Azure Entra tenant id used for app-only token acquisition.
   description: Tenant id for app-only token
-  value: ${Lib_Microsoft_Teams.tenantId}
+  value: ${Microsoft_AzGraph.tenantId}
 ↓clientId [variables.RequestableVariable-1772640079722]: 
   comment: Azure Entra application client id used for app-only token acquisition.
   description: Client id for app-only token
-  value: ${Lib_Microsoft_Teams.clientId}
+  value: ${Microsoft_AzGraph.clientId}
 ↓clientSecret [variables.RequestableVariable-1772640079827]: 
   description: Client secret for app-only token
   value: 
     - ↑ciphered: true
     - ↑traceable: false
-    - →→: x34f14b29e41330b3743373769e226a41671c5d009bba84fd240ca36453886bbc9bad0296cbcdb651194362fbdb31e671
+    - →→: xa51e43ef1d108aa61557c46e9670abb3d50668c28091a8d24f75c1d2eb802780bc1e972ff7382dfe8bbbe42f37b74544
   visibility: '-1'
 ↓TC_ListMeetingRecordings_Nominal [core.TestCase]: 
   ↓userId [variables.TestCaseVariable-1772641908708]: 
@@ -100,8 +100,8 @@ comment: Lists recordings for a Teams online meeting. (Graph permissions OnlineM
     value: 1
   ↓accessToken [variables.TestCaseVariable-1772641908711]: 
   ↓tenantId [variables.TestCaseVariable-1772641908712]: 
-    value: ${Lib_Microsoft_Teams.tenantId}
+    value: ${Microsoft_AzGraph.tenantId}
   ↓clientId [variables.TestCaseVariable-1772641908713]: 
-    value: ${Lib_Microsoft_Teams.clientId}
+    value: ${Microsoft_AzGraph.clientId}
   ↓clientSecret [variables.TestCaseVariable-1772641908714]: 
-    value: ${Lib_Microsoft_Teams.clientSecret.secret}
+    value: ${Microsoft_AzGraph.clientSecret.secret}

@@ -85,9 +85,13 @@ In a standard deployment, they are configured once on the server and not passed 
 
 <table>
 <tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
-<tr><td><code>${Lib_Microsoft_Teams.tenantId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
-<tr><td><code>${Lib_Microsoft_Teams.clientId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
-<tr><td><code>${Lib_Microsoft_Teams.clientSecret.secret}</code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code>${Microsoft_AzGraph.tenantId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code>${Microsoft_AzGraph.clientId}</code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code>${Microsoft_AzGraph.clientSecret.secret}</code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.ewsUrl}</code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>No</td><td>EWS endpoint URL for Exchange on-premises.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.ewsUsername}</code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>No</td><td>EWS technical username.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.ewsPassword.secret}</code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>Yes</td><td>EWS technical password.</td></tr>
+<tr><td><code>${Lib_Microsoft_Teams.ewsImpersonateUserId}</code></td><td>Optional</td><td>No</td><td>EWS impersonation mailbox; defaults to organizer when omitted.</td></tr>
 </table>
 
 ## Authentication Model
@@ -987,7 +991,7 @@ Plans an available slot and creates an Outlook/Teams meeting event in one backen
 <td>clientId</td><td>Azure Entra application client id used for app-only token acquisition.</td>
 </tr>
 <tr>
-<td>clientSecret</td><td></td>
+<td>clientSecret</td><td>Azure Entra application client secret used for app-only token acquisition.</td>
 </tr>
 <tr>
 <td>customMetadataJson</td><td>Optional custom metadata JSON persisted as open extension.</td>

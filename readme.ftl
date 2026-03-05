@@ -208,9 +208,13 @@ In a standard deployment, they are configured once on the server and not passed 
 
 <table>
 <tr><th>Symbol</th><th>Required</th><th>Secret</th><th>Purpose</th></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.tenantId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
-<tr><td><code><#noparse>${Lib_Microsoft_Teams.clientSecret.secret}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code><#noparse>${Microsoft_AzGraph.tenantId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Azure Entra tenant ID.</td></tr>
+<tr><td><code><#noparse>${Microsoft_AzGraph.clientId}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>No</td><td>Application (client) ID.</td></tr>
+<tr><td><code><#noparse>${Microsoft_AzGraph.clientSecret.secret}</#noparse></code></td><td>Yes for app-mode (server-side)</td><td>Yes</td><td>Application client secret.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.ewsUrl}</#noparse></code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>No</td><td>EWS endpoint URL for Exchange on-premises.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.ewsUsername}</#noparse></code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>No</td><td>EWS technical username.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.ewsPassword.secret}</#noparse></code></td><td>Optional (for `provider=ews` or `provider=auto` fallback)</td><td>Yes</td><td>EWS technical password.</td></tr>
+<tr><td><code><#noparse>${Lib_Microsoft_Teams.ewsImpersonateUserId}</#noparse></code></td><td>Optional</td><td>No</td><td>EWS impersonation mailbox; defaults to organizer when omitted.</td></tr>
 </table>
 
 	<@header toc=toc anchors=anchors heading="##" text="Authentication Model" />
