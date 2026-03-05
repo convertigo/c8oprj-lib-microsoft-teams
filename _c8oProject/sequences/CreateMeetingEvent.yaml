@@ -186,18 +186,18 @@ comment: Creates an Outlook calendar event with Teams online meeting link. (Grap
 ↓ewsUrl [variables.RequestableVariable-1772559101002]: 
   comment: EWS endpoint URL used when provider is ews or auto fallback.
   description: EWS endpoint URL
-  value: ${Lib_Microsoft_Teams.ewsUrl}
+  value: ${lib_Microsoft_Teams.ewsUrl}
 ↓ewsUsername [variables.RequestableVariable-1772559101003]: 
   comment: EWS technical username used for Exchange on-prem authentication.
   description: EWS username
-  value: ${Lib_Microsoft_Teams.ewsUsername}
+  value: ${lib_Microsoft_Teams.ewsUsername}
 ↓ewsPassword [variables.RequestableVariable-1772559101004]: 
   comment: EWS technical password used for Exchange on-prem authentication.
   description: EWS password
   value: 
     - ↑ciphered: true
     - ↑traceable: false
-    - →→: x34f14b29e41330b3743373769e226a41e5aed4cdf9ff3d523c1c5ecdbd14e03572c5c48a64239e936a176fcaf638c3fe
+    - →→: x047adaa9fc7ed27aec6bc11e4a6b6d7cfb836e309cf1ae67ba3deaf84f913186d345218011b322e81ca355cd59568833
   visibility: '-1'
 ↓ewsImpersonateUserId [variables.RequestableVariable-1772559101005]: 
   comment: Optional mailbox used for EWS impersonation, defaults to organizerUserId.
