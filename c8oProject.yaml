@@ -4,7 +4,7 @@
   contextTimeout: 59
   corsOrigin: =Origin
   httpSessionTimeout: 60
-  version: 8.0.0.6
+  version: 8.0.0.7
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓AddTeamMember [sequences.GenericSequence]: 🗏 sequences/AddTeamMember.yaml
   ↓AttachMeetingCustomMetadata [sequences.GenericSequence]: 🗏 sequences/AttachMeetingCustomMetadata.yaml

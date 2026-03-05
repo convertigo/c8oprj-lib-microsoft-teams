@@ -184,14 +184,14 @@ ${lineBreak}
 
 <#-- intro variable : add project header and comment -->
 <#assign intro>
-	<@header toc=toc anchors=anchors heading="#" text=project.label />
-	<@comment text=project.comment />
-	[![Convertigo CI](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml/badge.svg?branch=8.0.0.0)](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml)
-	<#-- you can add your text or own macro call here to add something -->
-	<#--
-	This is text i want to add after the project comment
-	<@my_own_macro my_var='xxxx xxxxx xxxxx'>
-	-->
+<@header toc=toc anchors=anchors heading="#" text=project.label />
+<@comment text=project.comment />
+[![Build, Deploy and Tests](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml/badge.svg?branch=8.0.0.0)](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml)
+<#-- you can add your text or own macro call here to add something -->
+<#--
+This is text i want to add after the project comment
+<@my_own_macro my_var='xxxx xxxxx xxxxx'>
+-->
 </#assign>
 
 <#-- content variable : add project sub-beans header and comment -->
