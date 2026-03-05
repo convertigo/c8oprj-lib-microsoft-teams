@@ -5,7 +5,7 @@
 
 Mashup Sequencer project
 
-[![Convertigo CI](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml/badge.svg?branch=8.0.0.0)](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml)
+	[![Convertigo CI](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml/badge.svg?branch=8.0.0.0)](https://github.com/convertigo/c8oprj-lib-microsoft-teams/actions/workflows/build-and-release.yml)
 
 For more technical informations : [documentation](./project.md)
 
@@ -1581,3 +1581,5 @@ Validates Graph permissions by probing key Teams/Outlook endpoints. (Graph permi
 <td>userId</td><td>User id or UPN used as target for permission probes.</td>
 </tr>
 </table>
+
+
