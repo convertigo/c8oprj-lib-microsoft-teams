@@ -26,10 +26,11 @@ comment: Lists recordings for a Teams online meeting. (Graph permissions OnlineM
     	
     	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
     	tokenMode = tokenInfo.mode;
+    	var targetUserIdForRequest = gm_graphResolveOnlineMeetingsUserId(tokenInfo, targetUser);
     	var listed = gm_graphHttp(
     		"GET",
     		tokenInfo.token,
-    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId) + "/recordings",
+    		"/users/" + gm_urlEncode(targetUserIdForRequest) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId) + "/recordings",
     		{ "$top": String(pageTop) },
     		null,
     		null
@@ -39,6 +40,7 @@ comment: Lists recordings for a Teams online meeting. (Graph permissions OnlineM
     	var values = gm_graphPayloadArray(listed);
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
     		userId: targetUser,
+    		resolvedUserId: targetUserIdForRequest,
     		onlineMeetingId: targetMeetingId,
     		count: values.length,
     		nextLink: gm_safeString(payload["@odata.nextLink"]),

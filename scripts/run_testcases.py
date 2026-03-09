@@ -41,7 +41,7 @@ def _env_bool(name: str, default: str) -> bool:
 # Convertigo session/auth context.
 TEST_SERVER_ENDPOINT = _env("TEST_SERVER_ENDPOINT", "")
 C8O_SERVER_URL = _env("C8O_SERVER_URL", TEST_SERVER_ENDPOINT or "http://localhost:18080")
-C8O_PROJECT = _env("C8O_PROJECT", "Lib_Microsoft_Teams")
+C8O_PROJECT = _env("C8O_PROJECT", "lib_Microsoft_Teams")
 C8O_BASE_URL = _env(
     "C8O_BASE_URL",
     f"{C8O_SERVER_URL}/convertigo/projects/{C8O_PROJECT}/.json",
@@ -95,6 +95,7 @@ WEBHOOK_URL = _env("WEBHOOK_URL", "")
 RUN_TEAM_WRITES = _env("RUN_TEAM_WRITES", "false").lower() == "true"
 RUN_MESSAGE_WRITES = _env("RUN_MESSAGE_WRITES", "false").lower() == "true"
 RUN_EVENT_RESPONSE_WRITES = _env("RUN_EVENT_RESPONSE_WRITES", "false").lower() == "true"
+RUN_ONLINE_MEETING_TESTS = _env("RUN_ONLINE_MEETING_TESTS", "false").lower() == "true"
 REPORT_FILE = _env("REPORT_FILE", "build/logical-test-plan-report.json")
 
 # Mutable session state used by call_sequence.
@@ -353,7 +354,7 @@ class TestPlan:
         on_success: Optional[Callable[[Dict[str, Any], Dict[str, Any]], None]] = None,
     ) -> bool:
         if not enabled:
-            self.add_result(phase, step, "SKIP", mandatory, "disabled by context/capabilities")
+            self.add_result(phase, step, "SKIP", mandatory, "disabled by runtime prerequisites")
             return False
 
         try:
@@ -440,6 +441,10 @@ def main() -> int:
     print()
 
     # Phase 1: Discover granted capabilities with a lightweight probe sequence.
+    # The probe is informational only; optional steps below should be gated by
+    # actual runtime context/flags rather than the probe result because some
+    # Graph endpoints are more permissive than the probe, and some probe calls
+    # are themselves narrower than the business sequence they try to represent.
     def save_caps(payload: Dict[str, Any], ctx: Dict[str, Any]) -> None:
         caps: Dict[str, str] = {}
         for item in response_data(payload).get("results", []):
@@ -515,11 +520,7 @@ def main() -> int:
         on_success=save_listed_event_id,
     )
 
-    series_master_event_id = (
-        SERIES_MASTER_EVENT_ID
-        or str(plan.ctx.get("listed_event_id", ""))
-        or event_id
-    )
+    series_master_event_id = SERIES_MASTER_EVENT_ID
     plan.run_step(
         "phase-2-core-meeting",
         "ListMeetingInstances",
@@ -635,7 +636,7 @@ def main() -> int:
     )
 
     # Phase 4: Online meeting optional path.
-    online_enabled = plan.capability_ok("onlineMeetings")
+    online_enabled = RUN_ONLINE_MEETING_TESTS
 
     def save_online(payload: Dict[str, Any], ctx: Dict[str, Any]) -> None:
         data = response_data(payload)
@@ -649,8 +650,8 @@ def main() -> int:
         {
             "userId": ORGANIZER_USER_ID,
             "subject": "C8O Online Meeting",
-            "startDateTimeIso": start.strftime("%Y-%m-%dT%H:%M:%S"),
-            "endDateTimeIso": end.strftime("%Y-%m-%dT%H:%M:%S"),
+            "startDateTimeIso": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDateTimeIso": end.strftime("%Y-%m-%dT%H:%M:%SZ"),
         },
         mandatory=False,
         enabled=online_enabled,
@@ -720,7 +721,7 @@ def main() -> int:
         "GetUserPresence",
         {"userId": ORGANIZER_USER_ID},
         mandatory=False,
-        enabled=plan.capability_ok("presence"),
+        enabled=True,
     )
     plan.run_step(
         "phase-5-collaboration",
@@ -728,7 +729,7 @@ def main() -> int:
         "ListUserChats",
         {"userId": ORGANIZER_USER_ID, "top": "5"},
         mandatory=False,
-        enabled=plan.capability_ok("chats"),
+        enabled=True,
     )
 
     def save_created_team(payload: Dict[str, Any], ctx: Dict[str, Any]) -> None:
@@ -738,7 +739,7 @@ def main() -> int:
         data = response_data(payload)
         ctx["created_team_channel_id"] = str(data.get("channelId", "") or data.get("id", "") or "")
 
-    team_writes_enabled = plan.capability_ok("joinedTeams") and RUN_TEAM_WRITES
+    team_writes_enabled = RUN_TEAM_WRITES
     plan.run_step(
         "phase-5-collaboration",
         "CreateTeam",
@@ -778,7 +779,7 @@ def main() -> int:
         "ListTeamChannels",
         {"teamId": effective_team_id, "top": "5"},
         mandatory=False,
-        enabled=plan.capability_ok("joinedTeams") and bool(effective_team_id),
+        enabled=bool(effective_team_id),
     )
 
     # Optional destructive team membership checks.

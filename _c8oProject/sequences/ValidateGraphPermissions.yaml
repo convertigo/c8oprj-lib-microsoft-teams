@@ -36,8 +36,8 @@ comment: Validates Graph permissions by probing key Teams/Outlook endpoints. (Gr
     		presence: { permission: "Presence.Read.All", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/presence", query: null },
     		chats: { permission: "Chat.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/chats", query: { "$top": "1" } },
     		calendar: { permission: "Calendars.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/events", query: { "$top": "1" } },
-    		onlineMeetings: { permission: "OnlineMeetings.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/onlineMeetings", query: { "$top": "1" } },
-    		joinedTeams: { permission: "Team.ReadBasic.All", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/joinedTeams", query: { "$top": "1" } },
+    		onlineMeetings: { permission: "OnlineMeetings.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/onlineMeetings", query: null },
+    		joinedTeams: { permission: "Team.ReadBasic.All", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/joinedTeams", query: null },
     		drive: { permission: "Files.Read", method: "GET", path: "/users/" + gm_urlEncode(targetUser) + "/drive/root", query: null }
     	};
     	
@@ -60,7 +60,11 @@ comment: Validates Graph permissions by probing key Teams/Outlook endpoints. (Gr
     		}
     		var checkSpec = checkCatalog[checkName];
     		try {
-    			var checkResult = gm_graphHttp(checkSpec.method, tokenInfo.token, checkSpec.path, checkSpec.query, null, null);
+    			var checkPath = checkSpec.path;
+    			if (checkName === "onlineMeetings") {
+    				checkPath = "/users/" + gm_urlEncode(gm_graphResolveOnlineMeetingsUserId(tokenInfo, targetUser)) + "/onlineMeetings";
+    			}
+    			var checkResult = gm_graphHttp(checkSpec.method, tokenInfo.token, checkPath, checkSpec.query, null, null);
     			results.push({
     				check: checkName,
     				status: "OK",

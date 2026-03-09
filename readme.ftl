@@ -240,6 +240,12 @@ Optional overrides:
 - `C8O_LOGIN_PROJECT` and `C8O_LOGIN_SEQUENCE` to target another login sequence.
 - `C8O_LOGIN_EXTRA_FORM` when the login sequence expects additional variables (`k1=v1&k2=v2`).
 - `ACCESS_TOKEN` or `AZ_*` variables only when you want to bypass server-side symbols for a specific run.
+- `RUN_TEAM_WRITES=true` to allow `CreateTeam`, `CreateTeamChannel`, `AddTeamMember`, `RemoveTeamMember`.
+- `RUN_MESSAGE_WRITES=true` to allow `SendChatMessage`, `SendChannelMessage`, `ShareDriveItemToChatOrChannel`.
+- `RUN_EVENT_RESPONSE_WRITES=true` to allow `RespondToMeetingEvent`.
+- `RUN_ONLINE_MEETING_TESTS=true` to allow `CreateOnlineMeeting` when the tenant policy is configured for application access.
+- `RUN_FILE_WRITES=false` to block `UploadMeetingAttachment` when file writes must be disabled.
+- `TEAM_ID`, `CHANNEL_ID`, `CHAT_ID`, `TARGET_MEMBER_USER_ID`, `SERIES_MASTER_EVENT_ID`, `ONLINE_MEETING_ID`, `ONLINE_MEETING_JOIN_URL`, `RECORDING_ID`, `DRIVE_ITEM_WEB_URL`, `SUBSCRIPTION_ID`, `WEBHOOK_URL` to provide existing runtime artifacts when the scenario cannot create them.
 
 	<@header toc=toc anchors=anchors heading="##" text="Required Azure Permissions" />
 Grant Microsoft Graph permissions, then click `Grant admin consent` in Azure.

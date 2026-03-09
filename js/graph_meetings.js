@@ -17,6 +17,9 @@ var gm_graphPreferredLoader = null;
 var gm_graphFallbackLoader = null;
 var gm_graphJarCheckedPaths = [];
 var gm_graphLoadErrors = [];
+var gm_graphHttpClient = null;
+var gm_graphClientByToken = {};
+var gm_graphResolvedUserObjectIdsByToken = {};
 
 function gm_tryLoadClass(className, loader) {
   try {
@@ -392,28 +395,97 @@ function gm_resolveToken(accessToken, tenantId, clientId, clientSecret) {
   return gm_acquireAppToken(tenantId, clientId, clientSecret, "https://graph.microsoft.com/.default");
 }
 
-function gm_newGraphClientWithBearer(accessToken) {
-  try {
-    // Resolve a core model first so GraphServiceClient and model classes stay on the same classloader.
-    gm_getGraphClass("com.microsoft.graph.models.Event");
+function gm_requireGraphJarClasses() {
+  gm_getGraphClass("com.microsoft.graph.models.Event");
+  gm_getGraphClass("com.microsoft.graph.serviceclient.GraphServiceClient");
+  gm_getGraphClass("com.microsoft.kiota.RequestInformation");
+  gm_getGraphClass("okhttp3.OkHttpClient");
+}
 
-    var authProviderClass = gm_getGraphClass("com.microsoft.kiota.authentication.AuthenticationProvider");
-    var authProvider = new JavaAdapter(authProviderClass, {
-      authenticateRequest: function(requestInformation, additionalAuthenticationContext) {
-        requestInformation.headers.add("Authorization", "Bearer " + accessToken);
-      }
-    });
-
-    var graphClientClass = gm_getGraphClass("com.microsoft.graph.serviceclient.GraphServiceClient");
-    return graphClientClass.getDeclaredConstructor(authProviderClass).newInstance(authProvider);
-  } catch (dynamicClientError) {
-    var fallbackAuthProvider = new JavaAdapter(Packages.com.microsoft.kiota.authentication.AuthenticationProvider, {
-      authenticateRequest: function(requestInformation, additionalAuthenticationContext) {
-        requestInformation.headers.add("Authorization", "Bearer " + accessToken);
-      }
-    });
-    return new Packages.com.microsoft.graph.serviceclient.GraphServiceClient(fallbackAuthProvider);
+function gm_getGraphHttpClient() {
+  if (gm_graphHttpClient !== null) {
+    return gm_graphHttpClient;
   }
+
+  gm_requireGraphJarClasses();
+
+  var builder = gm_newGraphObject("okhttp3.OkHttpClient$Builder");
+  var timeUnit = java.util.concurrent.TimeUnit;
+  builder.connectTimeout(30, timeUnit.SECONDS);
+  builder.readTimeout(180, timeUnit.SECONDS);
+  builder.writeTimeout(180, timeUnit.SECONDS);
+  builder.callTimeout(300, timeUnit.SECONDS);
+
+  gm_graphHttpClient = builder.build();
+  return gm_graphHttpClient;
+}
+
+function gm_newAuthenticationProvider(accessToken) {
+  var normalizedToken = gm_safeString(accessToken);
+  var authProviderClass = gm_getGraphClass("com.microsoft.kiota.authentication.AuthenticationProvider");
+  var invocationHandler = new JavaAdapter(java.lang.reflect.InvocationHandler, {
+    invoke: function(proxy, method, args) {
+      var methodName = method === null || method === undefined ? "" : String(method.getName());
+
+      if (methodName === "authenticateRequest") {
+        var requestInformation = args !== null && args !== undefined && args.length > 0 ? args[0] : null;
+        if (requestInformation !== null && !gm_isBlank(normalizedToken)) {
+          requestInformation.headers.add("Authorization", "Bearer " + normalizedToken);
+        }
+        return null;
+      }
+      if (methodName === "toString") {
+        return "GraphAuthenticationProviderProxy";
+      }
+      if (methodName === "hashCode") {
+        return new java.lang.Integer(java.lang.System.identityHashCode(proxy));
+      }
+      if (methodName === "equals") {
+        return java.lang.Boolean.valueOf(args !== null && args !== undefined && args.length > 0 && proxy === args[0]);
+      }
+      return null;
+    }
+  });
+  var interfaces = java.lang.reflect.Array.newInstance(java.lang.Class, 1);
+  java.lang.reflect.Array.set(interfaces, 0, authProviderClass);
+  return java.lang.reflect.Proxy.newProxyInstance(authProviderClass.getClassLoader(), interfaces, invocationHandler);
+}
+
+function gm_getGraphClientContext(accessToken) {
+  gm_requireGraphJarClasses();
+
+  var normalizedToken = gm_require("accessToken", accessToken);
+  var context = gm_graphClientByToken[normalizedToken];
+  if (context !== undefined && context !== null) {
+    return context;
+  }
+
+  var authProviderClass = gm_getGraphClass("com.microsoft.kiota.authentication.AuthenticationProvider");
+  var graphClientClass = gm_getGraphClass("com.microsoft.graph.serviceclient.GraphServiceClient");
+  var okHttpClientClass = gm_getGraphClass("okhttp3.OkHttpClient");
+  var authProvider = gm_newAuthenticationProvider(normalizedToken);
+  var graphClient = null;
+
+  try {
+    graphClient = graphClientClass
+      .getDeclaredConstructor(authProviderClass, okHttpClientClass)
+      .newInstance(authProvider, gm_getGraphHttpClient());
+  } catch (ignoreGraphClientWithHttpClient) {
+    graphClient = graphClientClass
+      .getDeclaredConstructor(authProviderClass)
+      .newInstance(authProvider);
+  }
+
+  context = {
+    client: graphClient,
+    adapter: graphClient.getRequestAdapter()
+  };
+  gm_graphClientByToken[normalizedToken] = context;
+  return context;
+}
+
+function gm_newGraphClientWithBearer(accessToken) {
+  return gm_getGraphClientContext(accessToken).client;
 }
 
 function gm_newDateTimeTimeZone(dateTimeIso, timeZone) {
@@ -983,6 +1055,13 @@ function gm_graphDefaultBaseUrl() {
   return "https://graph.microsoft.com/v1.0";
 }
 
+function gm_isGuidLike(value) {
+  if (gm_isBlank(value)) {
+    return false;
+  }
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(value));
+}
+
 function gm_graphResolveUrl(pathOrUrl) {
   var raw = gm_require("pathOrUrl", pathOrUrl);
   if (raw.indexOf("http://") === 0 || raw.indexOf("https://") === 0) {
@@ -1023,6 +1102,51 @@ function gm_graphApplyQuery(url, queryParams) {
     }
   }
   return outputUrl;
+}
+
+function gm_graphUserObjectIdCacheForToken(tokenValue) {
+  var key = gm_safeString(tokenValue);
+  if (!Object.prototype.hasOwnProperty.call(gm_graphResolvedUserObjectIdsByToken, key)) {
+    gm_graphResolvedUserObjectIdsByToken[key] = {};
+  }
+  return gm_graphResolvedUserObjectIdsByToken[key];
+}
+
+function gm_graphResolveUserObjectId(bearerToken, userId) {
+  var requestedUser = gm_require("userId", userId);
+  if (gm_isGuidLike(requestedUser)) {
+    return String(requestedUser);
+  }
+
+  var cache = gm_graphUserObjectIdCacheForToken(bearerToken);
+  if (Object.prototype.hasOwnProperty.call(cache, requestedUser)) {
+    return String(cache[requestedUser]);
+  }
+
+  var resolved = gm_graphHttp(
+    "GET",
+    bearerToken,
+    "/users/" + gm_urlEncode(requestedUser),
+    { "$select": "id" },
+    null,
+    null
+  );
+  var userObject = resolved.data === null || resolved.data === undefined ? {} : resolved.data;
+  var objectId = gm_safeString(userObject.id);
+  if (gm_isBlank(objectId)) {
+    throw new java.lang.RuntimeException("Unable to resolve Entra object id for user " + requestedUser);
+  }
+
+  cache[requestedUser] = objectId;
+  return objectId;
+}
+
+function gm_graphResolveOnlineMeetingsUserId(tokenInfo, userId) {
+  var requestedUser = gm_require("userId", userId);
+  if (tokenInfo !== null && tokenInfo !== undefined && String(tokenInfo.mode) === "application") {
+    return gm_graphResolveUserObjectId(tokenInfo.token, requestedUser);
+  }
+  return String(requestedUser);
 }
 
 function gm_graphHeadersToObject(connection) {
@@ -1096,65 +1220,163 @@ function gm_graphExtractErrorMessage(parsedBody, fallbackMessage) {
   return gm_safeString(fallbackMessage);
 }
 
-function gm_graphHttpWithJavaHttpClient(upperMethod, accessTokenValue, urlText, bodyText, additionalHeaders) {
-  var HttpClient = java.net.http.HttpClient;
-  var HttpRequest = java.net.http.HttpRequest;
-  var HttpResponse = java.net.http.HttpResponse;
-  var URI = java.net.URI;
-  var StandardCharsets = java.nio.charset.StandardCharsets;
+function gm_httpMethodEnum(methodUpper) {
+  var HttpMethod = gm_getGraphClass("com.microsoft.kiota.HttpMethod");
+  var normalized = String(methodUpper);
+  try {
+    return HttpMethod.getField(normalized).get(null);
+  } catch (unknownMethod) {
+    throw new java.lang.IllegalArgumentException("Unsupported HTTP method: " + normalized);
+  }
+}
 
-  var builder = HttpRequest.newBuilder().uri(URI.create(urlText));
-  builder.header("Authorization", "Bearer " + accessTokenValue);
-  builder.header("Accept", "application/json");
-
-  var hasContentType = false;
-  var headerName;
-  if (additionalHeaders !== null && additionalHeaders !== undefined) {
-    for (headerName in additionalHeaders) {
-      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
-        var headerValue = String(additionalHeaders[headerName]);
-        builder.header(String(headerName), headerValue);
-        if (String(headerName).toLowerCase() === "content-type") {
-          hasContentType = true;
+function gm_setRequestHeaders(requestInfo, accept, contentType, headers) {
+  if (!gm_isBlank(accept)) {
+    requestInfo.headers.add("Accept", String(accept));
+  }
+  if (!gm_isBlank(contentType)) {
+    requestInfo.headers.add("Content-Type", String(contentType));
+  }
+  if (headers !== null && headers !== undefined) {
+    for (var headerName in headers) {
+      if (Object.prototype.hasOwnProperty.call(headers, headerName)) {
+        var headerValue = headers[headerName];
+        if (!gm_isBlank(headerValue)) {
+          requestInfo.headers.add(String(headerName), String(headerValue));
         }
       }
     }
   }
+}
 
-  if (!gm_isBlank(bodyText)) {
-    if (!hasContentType) {
-      builder.header("Content-Type", "application/json");
+function gm_setRequestBody(requestInfo, methodUpper, payloadString, payloadBytes, contentType) {
+  var hasString = payloadString !== null && payloadString !== undefined;
+  var hasBytes = payloadBytes !== null && payloadBytes !== undefined;
+
+  if (hasString && hasBytes) {
+    throw new java.lang.IllegalArgumentException("Provide either string payload or binary payload, not both");
+  }
+  if (!hasString && !hasBytes) {
+    if (methodUpper !== "POST" && methodUpper !== "PUT" && methodUpper !== "PATCH") {
+      return;
     }
-    builder.method(upperMethod, HttpRequest.BodyPublishers.ofString(String(bodyText), StandardCharsets.UTF_8));
-  } else {
-    builder.method(upperMethod, HttpRequest.BodyPublishers.noBody());
+    requestInfo.setStreamContent(
+      new java.io.ByteArrayInputStream(java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 0)),
+      gm_defaultString(contentType, "application/octet-stream")
+    );
+    return;
   }
 
-  var client = HttpClient.newBuilder().build();
-  var httpResponse = client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-  var statusCode = httpResponse.statusCode();
-  var responseBody = gm_safeString(httpResponse.body());
-  var parsedBody = null;
-  if (!gm_isBlank(responseBody)) {
-    try {
-      parsedBody = JSON.parse(String(responseBody));
-    } catch (ignoreParseBodyWithClient) {
-      parsedBody = null;
-    }
+  if (hasBytes) {
+    requestInfo.setStreamContent(
+      new java.io.ByteArrayInputStream(payloadBytes),
+      gm_defaultString(contentType, "application/octet-stream")
+    );
+    return;
   }
 
-  if (statusCode < 200 || statusCode >= 300) {
-    var graphErrorMessage = gm_graphExtractErrorMessage(parsedBody, responseBody);
-    throw new java.lang.RuntimeException("Graph API " + upperMethod + " " + urlText + " failed (" + statusCode + "): " + graphErrorMessage);
-  }
+  requestInfo.setStreamContent(
+    new java.io.ByteArrayInputStream(new java.lang.String(String(payloadString)).getBytes("UTF-8")),
+    gm_defaultString(contentType, "application/json")
+  );
+}
+
+function gm_buildNativeRequest(methodUpper, endpoint, bearerToken, payloadString, payloadBytes, contentType, accept, headers) {
+  gm_requireGraphJarClasses();
+
+  var RequestInformation = gm_getGraphClass("com.microsoft.kiota.RequestInformation");
+  var context = gm_getGraphClientContext(bearerToken);
+  var requestInfo = RequestInformation.getDeclaredConstructor().newInstance();
+
+  requestInfo.httpMethod = gm_httpMethodEnum(methodUpper);
+  requestInfo.setUri(new java.net.URI(String(endpoint)));
+  gm_setRequestHeaders(requestInfo, accept, contentType, headers);
+  gm_setRequestBody(requestInfo, methodUpper, payloadString, payloadBytes, contentType);
 
   return {
-    statusCode: statusCode,
-    url: urlText,
-    headers: gm_graphHeadersFromJavaMap(httpResponse.headers().map()),
-    rawBody: gm_safeString(responseBody),
-    data: parsedBody
+    context: context,
+    requestInfo: requestInfo,
+    nativeRequest: context.adapter.convertToNativeRequest(requestInfo)
   };
+}
+
+function gm_graphHeadersFromResponse(response) {
+  var headers = {};
+  if (response === null || response === undefined) {
+    return headers;
+  }
+
+  var responseHeaders = response.headers();
+  if (responseHeaders === null || responseHeaders === undefined) {
+    return headers;
+  }
+
+  var names = responseHeaders.names().iterator();
+  while (names.hasNext()) {
+    var name = names.next();
+    headers[String(name)] = gm_safeString(responseHeaders.get(String(name)));
+  }
+  return headers;
+}
+
+function gm_executeNativeRequest(nativeRequest, responseAsBytes) {
+  var response = gm_getGraphHttpClient().newCall(nativeRequest).execute();
+  try {
+    var statusCode = response.code();
+    var responseBody = response.body();
+    var textBody = "";
+    var bytesBody = null;
+    var errorBody = "";
+
+    if (responseBody !== null) {
+      if (responseAsBytes) {
+        var rawBytes = responseBody.bytes();
+        if (statusCode >= 200 && statusCode < 300) {
+          bytesBody = rawBytes;
+        } else {
+          errorBody = new java.lang.String(rawBytes, "UTF-8");
+        }
+      } else {
+        textBody = responseBody.string();
+      }
+    }
+
+    return {
+      statusCode: statusCode,
+      body: textBody,
+      bytes: bytesBody,
+      errorBody: errorBody,
+      headers: gm_graphHeadersFromResponse(response),
+      location: gm_safeString(response.header("Location")),
+      retryAfter: gm_safeString(response.header("Retry-After")),
+      requestId: gm_safeString(response.header("request-id")),
+      clientRequestId: gm_safeString(response.header("client-request-id")),
+      etag: gm_safeString(response.header("ETag")),
+      contentType: gm_safeString(response.header("Content-Type")),
+      contentLengthHeader: gm_safeString(response.header("Content-Length")),
+      contentDisposition: gm_safeString(response.header("Content-Disposition")),
+      contentRange: gm_safeString(response.header("Content-Range"))
+    };
+  } finally {
+    response.close();
+  }
+}
+
+function gm_httpRequestInternal(method, endpoint, bearerToken, payloadString, payloadBytes, contentType, accept, headers, responseAsBytes) {
+  var normalizedMethod = gm_defaultString(method, "GET").toUpperCase();
+  var preparedRequest = gm_buildNativeRequest(
+    normalizedMethod,
+    endpoint,
+    bearerToken,
+    payloadString,
+    payloadBytes,
+    contentType,
+    accept,
+    headers
+  );
+  var result = gm_executeNativeRequest(preparedRequest.nativeRequest, responseAsBytes);
+  result.url = endpoint;
+  return result;
 }
 
 function gm_graphHttp(method, bearerToken, pathOrUrl, queryParams, bodyObject, additionalHeaders) {
@@ -1170,40 +1392,19 @@ function gm_graphHttp(method, bearerToken, pathOrUrl, queryParams, bodyObject, a
     }
   }
 
-  if (upperMethod === "PATCH") {
-    return gm_graphHttpWithJavaHttpClient(upperMethod, accessTokenValue, urlText, bodyText, additionalHeaders);
-  }
-
-  var url = new java.net.URL(urlText);
-  var connection = url.openConnection();
-  connection.setRequestMethod(upperMethod);
-  connection.setRequestProperty("Authorization", "Bearer " + accessTokenValue);
-  connection.setRequestProperty("Accept", "application/json");
-
-  var headerName;
-  if (additionalHeaders !== null && additionalHeaders !== undefined) {
-    for (headerName in additionalHeaders) {
-      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
-        connection.setRequestProperty(String(headerName), String(additionalHeaders[headerName]));
-      }
-    }
-  }
-
-  if (!gm_isBlank(bodyText)) {
-    connection.setDoOutput(true);
-    if (gm_isBlank(connection.getRequestProperty("Content-Type"))) {
-      connection.setRequestProperty("Content-Type", "application/json");
-    }
-    var output = connection.getOutputStream();
-    try {
-      output.write(new java.lang.String(bodyText).getBytes("UTF-8"));
-    } finally {
-      output.close();
-    }
-  }
-
-  var statusCode = connection.getResponseCode();
-  var responseBody = gm_readAll((statusCode >= 200 && statusCode < 300) ? connection.getInputStream() : connection.getErrorStream());
+  var requestResult = gm_httpRequestInternal(
+    upperMethod,
+    urlText,
+    accessTokenValue,
+    gm_isBlank(bodyText) ? null : bodyText,
+    null,
+    gm_isBlank(bodyText) ? "" : "application/json",
+    "application/json",
+    additionalHeaders,
+    false
+  );
+  var statusCode = requestResult.statusCode;
+  var responseBody = gm_safeString(requestResult.body);
   var parsedBody = null;
   if (!gm_isBlank(responseBody)) {
     try {
@@ -1221,7 +1422,7 @@ function gm_graphHttp(method, bearerToken, pathOrUrl, queryParams, bodyObject, a
   return {
     statusCode: statusCode,
     url: urlText,
-    headers: gm_graphHeadersToObject(connection),
+    headers: requestResult.headers,
     rawBody: gm_safeString(responseBody),
     data: parsedBody
   };
@@ -1254,32 +1455,19 @@ function gm_graphUploadBytes(bearerToken, pathOrUrl, queryParams, byteArray, con
     throw new java.lang.IllegalArgumentException("byteArray cannot be null");
   }
   var urlText = gm_graphApplyQuery(gm_graphResolveUrl(pathOrUrl), queryParams);
-  var url = new java.net.URL(urlText);
-  var connection = url.openConnection();
-  connection.setRequestMethod("PUT");
-  connection.setRequestProperty("Authorization", "Bearer " + gm_require("accessToken", bearerToken));
-  connection.setRequestProperty("Accept", "application/json");
-  connection.setRequestProperty("Content-Type", gm_defaultString(contentType, "application/octet-stream"));
-  connection.setDoOutput(true);
-
-  var headerName;
-  if (additionalHeaders !== null && additionalHeaders !== undefined) {
-    for (headerName in additionalHeaders) {
-      if (Object.prototype.hasOwnProperty.call(additionalHeaders, headerName) && !gm_isBlank(additionalHeaders[headerName])) {
-        connection.setRequestProperty(String(headerName), String(additionalHeaders[headerName]));
-      }
-    }
-  }
-
-  var output = connection.getOutputStream();
-  try {
-    output.write(byteArray);
-  } finally {
-    output.close();
-  }
-
-  var statusCode = connection.getResponseCode();
-  var responseBody = gm_readAll((statusCode >= 200 && statusCode < 300) ? connection.getInputStream() : connection.getErrorStream());
+  var requestResult = gm_httpRequestInternal(
+    "PUT",
+    urlText,
+    gm_require("accessToken", bearerToken),
+    null,
+    byteArray,
+    gm_defaultString(contentType, "application/octet-stream"),
+    "application/json",
+    additionalHeaders,
+    false
+  );
+  var statusCode = requestResult.statusCode;
+  var responseBody = gm_safeString(requestResult.body);
   var parsedBody = null;
   if (!gm_isBlank(responseBody)) {
     try {
@@ -1297,7 +1485,7 @@ function gm_graphUploadBytes(bearerToken, pathOrUrl, queryParams, byteArray, con
   return {
     statusCode: statusCode,
     url: urlText,
-    headers: gm_graphHeadersToObject(connection),
+    headers: requestResult.headers,
     rawBody: gm_safeString(responseBody),
     data: parsedBody
   };

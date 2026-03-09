@@ -35,10 +35,11 @@ comment: Updates online meeting settings using a JSON patch payload. (Graph perm
     	
     	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
     	tokenMode = tokenInfo.mode;
+    	var targetUserIdForRequest = gm_graphResolveOnlineMeetingsUserId(tokenInfo, targetUser);
     	var patched = gm_graphHttp(
     		"PATCH",
     		tokenInfo.token,
-    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId),
+    		"/users/" + gm_urlEncode(targetUserIdForRequest) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId),
     		null,
     		settingsObject,
     		null
@@ -46,6 +47,7 @@ comment: Updates online meeting settings using a JSON patch payload. (Graph perm
     	
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
     		userId: targetUser,
+    		resolvedUserId: targetUserIdForRequest,
     		onlineMeetingId: targetMeetingId,
     		updatedOnlineMeeting: patched.data
     	});

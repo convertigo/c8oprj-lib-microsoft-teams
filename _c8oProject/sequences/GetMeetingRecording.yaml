@@ -20,10 +20,11 @@ comment: Retrieves one Teams meeting recording metadata entry. (Graph permission
     	
     	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
     	tokenMode = tokenInfo.mode;
+    	var targetUserIdForRequest = gm_graphResolveOnlineMeetingsUserId(tokenInfo, targetUser);
     	var fetched = gm_graphHttp(
     		"GET",
     		tokenInfo.token,
-    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId) + "/recordings/" + gm_urlEncode(targetRecordingId),
+    		"/users/" + gm_urlEncode(targetUserIdForRequest) + "/onlineMeetings/" + gm_urlEncode(targetMeetingId) + "/recordings/" + gm_urlEncode(targetRecordingId),
     		null,
     		null,
     		null
@@ -31,6 +32,7 @@ comment: Retrieves one Teams meeting recording metadata entry. (Graph permission
     	
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
     		userId: targetUser,
+    		resolvedUserId: targetUserIdForRequest,
     		onlineMeetingId: targetMeetingId,
     		recordingId: targetRecordingId,
     		recording: fetched.data

@@ -20,10 +20,11 @@ comment: Retrieves an online meeting by its Teams joinWebUrl. (Graph permissions
     	
     	var tokenInfo = gm_resolveToken(accessToken, tenantId, clientId, clientSecret);
     	tokenMode = tokenInfo.mode;
+    	var targetUserIdForRequest = gm_graphResolveOnlineMeetingsUserId(tokenInfo, targetUser);
     	var result = gm_graphHttp(
     		"GET",
     		tokenInfo.token,
-    		"/users/" + gm_urlEncode(targetUser) + "/onlineMeetings",
+    		"/users/" + gm_urlEncode(targetUserIdForRequest) + "/onlineMeetings",
     		{
     			"$filter": filterValue,
     			"$top": "1"
@@ -39,6 +40,7 @@ comment: Retrieves an online meeting by its Teams joinWebUrl. (Graph permissions
     	
     	response = gm_responseOk(graphOperation, tokenMode, requiredPermission, {
     		userId: targetUser,
+    		resolvedUserId: targetUserIdForRequest,
     		joinWebUrl: joinUrl,
     		onlineMeeting: items[0]
     	});
